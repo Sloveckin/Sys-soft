@@ -38,4 +38,6 @@ typedef struct OperationTreeNode {
 
 OpNode *create_operation_tree_node(struct Node *node);
 
+void free_operation_tree(OpNode *node);
+
 #endif

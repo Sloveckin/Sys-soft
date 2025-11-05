@@ -5,9 +5,20 @@
 #include <string.h>
 #include <malloc.h>
 
-static OpNode *create_store(struct Node *node)
+static OpNode *create_op_node()
 {
   OpNode *op = malloc(sizeof(OpNode));
+
+  op->children_amount = 0;
+  op->argument = NULL;  
+
+  return op;
+}
+
+static OpNode *create_store(struct Node *node)
+{
+  OpNode *op = create_op_node();
+
   op->type = Store;
   op->argument = malloc((strlen(node->text) + 1) * sizeof(char));
   sprintf(op->argument, "%s", node->text);
@@ -17,9 +28,11 @@ static OpNode *create_store(struct Node *node)
 
 static OpNode *create_proc_node(struct Node *node)
 {
-  OpNode *op = malloc(sizeof(OpNode));
+  OpNode *op = create_op_node();
+
   op->type = CallOrIndexer;
   op->argument = malloc((strlen(node->text) + 1) * sizeof(char));
+
   sprintf(op->argument, "%s", node->text);
   return op;
 }
@@ -27,15 +40,15 @@ static OpNode *create_proc_node(struct Node *node)
 static OpNode *binary_operation(struct Node *node, OpNodeType type)
 {
     assert (node->children_amount == 2);
-    OpNode *op = malloc(sizeof(OpNode));
+    OpNode *op = create_op_node();
 
     op->type = type;
 
     OpNode *first = create_operation_tree_node(node->children[0]);
-    OpNode *second = create_operation_tree_node(node->children[0]);
+    OpNode *second = create_operation_tree_node(node->children[1]);
 
     op->children_amount = 2;
-    op->children = malloc(op->children_amount * sizeof(OpNode));
+    op->children = malloc(op->children_amount * sizeof(OpNode *));
 
     op->children[0] = first;
     op->children[1] = second;
@@ -45,7 +58,7 @@ static OpNode *binary_operation(struct Node *node, OpNodeType type)
 
 static OpNode *unary_operation(struct Node *node, OpNodeType type)
 {
-    OpNode *op = malloc(sizeof(OpNode));
+    OpNode *op = create_op_node();
 
     op->children_amount = 1;
     op->children = malloc(sizeof(OpNode*));
@@ -58,7 +71,8 @@ static OpNode *unary_operation(struct Node *node, OpNodeType type)
 
 static OpNode *call_or_indexer(struct Node *node) 
 {
-  OpNode *op = malloc(sizeof(OpNode));
+  OpNode *op = create_op_node();
+
   OpNode *first = create_proc_node(node->children[0]);
   OpNode *second = create_operation_tree_node(node->children[1]);
 
@@ -74,7 +88,7 @@ static OpNode *call_or_indexer(struct Node *node)
 
 static OpNode *list_expr(struct Node *node)
 {
-  OpNode *op = malloc(sizeof(OpNode));
+  OpNode *op = create_op_node();
 
   op->type = ListExpr;
   op->children_amount = 2;
@@ -88,7 +102,7 @@ static OpNode *list_expr(struct Node *node)
 
 static OpNode *break_op(struct Node *node)
 {
-  OpNode *op = malloc(sizeof(OpNode));
+  OpNode *op = create_op_node();
   op->type = Break;
   op->children_amount = 0;
   return op;
@@ -99,12 +113,14 @@ OpNode *create_operation_tree_node(struct Node *node)
 
   if (strcmp(node->type, "Identifier") == 0 || strcmp(node->type, "Number") == 0)
   {
-    OpNode *op = malloc(sizeof(OpNode));
+    OpNode *op = create_op_node();
 
     if (strcmp(node->type, "Identifier") == 0)
       op->type = Load;
     else
       op->type = CONST;
+
+    op->children_amount = 0;
 
     op->argument = malloc((strlen(node->text) + 1) * sizeof(char));
     sprintf(op->argument, "%s", node->text);
@@ -115,7 +131,7 @@ OpNode *create_operation_tree_node(struct Node *node)
   if (strcmp(node->type, "Assigment") == 0)
   {
     assert (node->children_amount == 2);
-    OpNode *op = malloc(sizeof(OpNode));
+    OpNode *op = create_op_node();
 
     OpNode *store = create_store(node->children[0]);
     OpNode *load = create_operation_tree_node(node->children[1]);
@@ -178,4 +194,18 @@ OpNode *create_operation_tree_node(struct Node *node)
     return break_op(node);
 
   assert (0);
+}
+
+void free_operation_tree(OpNode *node)
+{
+  if (!node)
+    return;
+
+  for (size_t i = 0; i < node->children_amount; i++)
+    free_operation_tree(node->children[i]);
+
+  if (node->argument)
+    free(node->argument);
+
+  free(node);
 }

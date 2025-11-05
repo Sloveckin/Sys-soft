@@ -312,7 +312,7 @@ ControlGraphNode *foo(struct Node *node)
     return unary_operation(node, "not");
 
   if (strcmp(node->type, "Identifier") == 0 || strcmp(node->type, "Number") == 0 || strcmp(node->type, "Char") == 0 || strcmp(node->type, "Bool") == 0
-                                                        || strcmp(node->type, "Hex") == 0 || strcmp(node->type, "Bits") == 0)
+                                                   || strcmp(node->type, "Hex") == 0 || strcmp(node->type, "Bits") == 0)
   {
     ControlGraphNode *cgn = create_empty_node();
     cgn->text = malloc((strlen(node->text) + 1) * sizeof(char));
@@ -462,6 +462,9 @@ void free_control_node(ControlGraphNode *node)
 
   if (node->text)
     free(node->text);
+
+  if (node->operation_node)
+    free_operation_tree(node->operation_node);
 
   free(node);
 }
