@@ -26,7 +26,7 @@ typedef struct ControlGraphNode
 
 ControlGraphNode *foo(struct Node *node);
 
-struct Node *find_func_def(struct Node *root);
+void find_func_def(struct Node *root, struct Node **functions);
 
 void init_control_graph_id(ControlGraphNode *node);
 

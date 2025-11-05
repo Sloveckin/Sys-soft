@@ -9,10 +9,12 @@
 #include <assert.h>
 #include <malloc.h>
 
+size_t function_find_index = 0;
 
-struct Node *find_func_def(struct Node *root)
+void find_func_def(struct Node *root, struct Node **functions)
 {
 
+  #if 0
   if (root == NULL)
     return root;
 
@@ -29,6 +31,21 @@ struct Node *find_func_def(struct Node *root)
   }
 
   return NULL;
+  #endif
+
+  if (root == NULL)
+    return;
+
+  if (strcmp(root->type, "FuncDef") == 0)
+  {
+    functions[function_find_index++] = root;
+    return;
+  }
+
+  for (size_t i = 0; i < root->children_amount; i++)
+  {
+    find_func_def(root->children[i], functions);
+  }
 }
 
 static ControlGraphNode *find_last_cgn_node(ControlGraphNode *node)

@@ -1,5 +1,8 @@
 #include "control_graph/control_graph.h"
 #include "control_graph/converter_to_dgml.h"
+#include "function.h"
+#include <malloc.h>
+#include <string.h>
 
 inline static void print_start_node(char *function_name, FILE *file)
 {
@@ -77,4 +80,42 @@ void control_graph_to_dgml(char *function_name, FILE *file, ControlGraphNode *no
   print_nodes(function_name, file, node);
   print_links(file, node);
   fputs("</DirectedGraph>\n", file);
+}
+
+
+
+int write_into_file(char *source_name, struct Node *node)
+{
+
+  Function func = {
+    .signature = init_signature(node->children[0]),
+    .control_graph = foo(node->children[1]),
+  };
+
+  const size_t source_name_len = strlen(source_name);
+  const size_t function_name_len = strlen(func.signature->text);
+
+  // 5 for .ext + \0
+  char *file_name = malloc((source_name_len + function_name_len + 5) * sizeof(char));
+  sprintf(file_name, "%s%s.ext", source_name, func.signature->text);
+
+  FILE *file = fopen(file_name, "w");
+  if (file == NULL)
+  {
+    fprintf(stderr, "Can't create file %s", func.signature->text);
+    free(file_name);
+    return -1;
+  }
+
+  init_control_graph_id(func.control_graph);
+  control_graph_to_dgml(func.signature->text, file, func.control_graph);
+
+  int err = fclose(file);
+  if (err)
+  {
+    fprintf(stderr, "Can't close %s file", file_name);
+  }
+
+  free(file_name);
+  return 0;
 }

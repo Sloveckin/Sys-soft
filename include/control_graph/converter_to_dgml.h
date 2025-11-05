@@ -6,4 +6,6 @@
 
 void control_graph_to_dgml(char *function_name, FILE *file, ControlGraphNode *node);
 
+int write_into_file(char *source_name, struct Node *node);
+
 #endif
