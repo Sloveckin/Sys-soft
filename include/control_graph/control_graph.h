@@ -7,7 +7,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-struct Node *find_func_def(struct Node *root);
+
 
 typedef struct ControlGraphNode 
 {
@@ -25,6 +25,8 @@ typedef struct ControlGraphNode
 } ControlGraphNode;
 
 ControlGraphNode *foo(struct Node *node);
+
+struct Node *find_func_def(struct Node *root);
 
 void init_control_graph_id(ControlGraphNode *node);
 

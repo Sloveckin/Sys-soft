@@ -4,6 +4,6 @@
 #include "control_graph.h"
 #include <stdio.h>
 
-void control_graph_to_dgml(FILE *file, ControlGraphNode *node);
+void control_graph_to_dgml(char *function_name, FILE *file, ControlGraphNode *node);
 
 #endif

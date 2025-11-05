@@ -52,18 +52,18 @@ int main(int argc, char **argv)
 
   if (res == 0)
   {
-    //init_id(root);
-    //convert_to_dgml(output, root);
+    init_id(root);
+    convert_to_dgml(output, root);
 
-    struct Node *func_def = find_func_def(root);
+    //struct Node *func_def = find_func_def(root);
 
-    Function func = {
-      .signature = init_signature(func_def->children[0]),
-      .control_graph = foo(func_def->children[1]),
-    };
+    //Function func = {
+      //.signature = init_signature(func_def->children[0]),
+      //.control_graph = foo(func_def->children[1]),
+    //};
 
-    init_control_graph_id(func.control_graph);
-    control_graph_to_dgml(output, func.control_graph);
+    //init_control_graph_id(func.control_graph);
+    //control_graph_to_dgml(func.signature->text, output, func.control_graph);
 
   }
 

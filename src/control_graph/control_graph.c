@@ -132,24 +132,6 @@ static ControlGraphNode *while_cycle(struct Node* node)
     return cgn;
   }
 
-  /*ControlGraphNode *cond = foo(node->children[1]);
-  ControlGraphNode *states = foo(node->children[2]);
-
-  cond->connect_to_end = true;
-
-  ControlGraphNode *end = create_empty_node();
-
-  cond->def = end;
-  cond->cond = states;
-  cond->end = end;
-
-  states->end = cond;
-
-  if (!states->connect_to_end)
-    states->def = cond;
-
-  return cond;*/
-
   ControlGraphNode *cond = foo(node->children[1]);
   ControlGraphNode *stats = foo(node->children[2]);
 
@@ -169,31 +151,19 @@ static ControlGraphNode *do_until_cycle(struct Node *node)
 {
   ControlGraphNode *statments = foo(node->children[0]);
   ControlGraphNode *while_or_until = foo(node->children[1]);
-  ControlGraphNode *condition = foo(node->children[2]);
+  ControlGraphNode *cond = foo(node->children[2]);
 
   ControlGraphNode *end = create_empty_node();
 
+  cond->def = end;
+  ControlGraphNode *last_stats = find_last_cgn_node(statments);
+
   assert ((strcmp(while_or_until->text, "until") == 0) || (strcmp(while_or_until->text, "while")) == 0);
-  if (strcmp(while_or_until->text, "until") == 0)
-  {
-    condition->cond = statments;
-    condition->def = end;
 
-    statments->def = condition;
-    statments->connect_to_end = true;
-    statments->end = end;
+  cond->cond = statments;
+  last_stats->def = cond;
 
-    return statments;
-  }
-
-  condition->cond = statments;
-  statments->def = condition;
-  condition->def = end;
-
-  condition->connect_to_end = true;
-  condition->end = end;
-
-  return condition;
+  return statments; 
 }
 
 
@@ -448,10 +418,18 @@ ControlGraphNode *foo(struct Node *node)
     return cgn;
   }
 
+  if (strcmp(node->type, "Until") == 0)
+  {
+    ControlGraphNode *cgn = create_empty_node();
+    cgn->text = malloc(6 * sizeof(char));
+    sprintf(cgn->text, "until");
+    return cgn;
+  }
+
   assert (0);
 }
 
-size_t dgml_id = 0;
+size_t dgml_id = 1;
 
 void init_control_graph_id(ControlGraphNode *node)
 {
