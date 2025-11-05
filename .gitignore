@@ -1,0 +1,6 @@
+.cache/
+.vscode/
+generated/
+files/
+compile_commands.json
+main

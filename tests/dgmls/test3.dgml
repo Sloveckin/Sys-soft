@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DirectedGraph xmlns="http://schemas.microsoft.com/vs/2009/dgml" Layout="Sugiyama" GraphDirection="TopToBottom">
+<Nodes>
+<Node Id="0" Label="SourceItemList" />
+<Node Id="1" Label="FuncDef" />
+<Node Id="2" Label="funcSignature" />
+<Node Id="3" Label="Identifier: foo" />
+<Node Id="4" Label="argDef" />
+<Node Id="5" Label="Identifier: array" />
+<Node Id="6" Label="Array" />
+<Node Id="7" Label="int" />
+<Node Id="8" Label="PartOfArray" />
+<Node Id="9" Label="PartOfArray" />
+<Node Id="10" Label="PartOfArray" />
+<Node Id="11" Label="PartOfArray" />
+<Node Id="12" Label="PartOfArray" />
+<Node Id="13" Label="EmptyNode" />
+<Node Id="14" Label="EmptyNode" />
+<Node Id="15" Label="EmptyNode" />
+<Node Id="16" Label="EmptyNode" />
+<Node Id="17" Label="EmptyNode" />
+<Node Id="18" Label="VoidType" />
+<Node Id="19" Label="ListStatement" />
+<Node Id="20" Label="CallOrIndexer" />
+<Node Id="21" Label="Identifier: display" />
+<Node Id="22" Label="Identifier: sum" />
+<Node Id="23" Label="ListStatement" />
+<Node Id="24" Label="While" />
+<Node Id="25" Label="While: while" />
+<Node Id="26" Label="Less" />
+<Node Id="27" Label="Identifier: index" />
+<Node Id="28" Label="Number: 5" />
+<Node Id="29" Label="ListStatement" />
+<Node Id="30" Label="Assigment" />
+<Node Id="31" Label="Identifier: index" />
+<Node Id="32" Label="Plus" />
+<Node Id="33" Label="Identifier: index" />
+<Node Id="34" Label="Number: 1" />
+<Node Id="35" Label="ListStatement" />
+<Node Id="36" Label="Assigment" />
+<Node Id="37" Label="Identifier: sum" />
+<Node Id="38" Label="Plus" />
+<Node Id="39" Label="Identifier: sum" />
+<Node Id="40" Label="CallOrIndexer" />
+<Node Id="41" Label="Identifier: array" />
+<Node Id="42" Label="Identifier: index" />
+<Node Id="43" Label="ListStatement" />
+<Node Id="44" Label="var" />
+<Node Id="45" Label="" />
+<Node Id="46" Label="Identifier: sum" />
+<Node Id="47" Label="Identifier: index" />
+<Node Id="48" Label="int" />
+</Nodes>
+<Links>
+<Link Source="0" Target="1"/>
+<Link Source="1" Target="2"/>
+<Link Source="2" Target="3"/>
+<Link Source="2" Target="4"/>
+<Link Source="4" Target="5"/>
+<Link Source="4" Target="6"/>
+<Link Source="6" Target="7"/>
+<Link Source="6" Target="8"/>
+<Link Source="8" Target="9"/>
+<Link Source="9" Target="10"/>
+<Link Source="10" Target="11"/>
+<Link Source="11" Target="12"/>
+<Link Source="12" Target="13"/>
+<Link Source="11" Target="14"/>
+<Link Source="10" Target="15"/>
+<Link Source="9" Target="16"/>
+<Link Source="8" Target="17"/>
+<Link Source="2" Target="18"/>
+<Link Source="1" Target="19"/>
+<Link Source="19" Target="20"/>
+<Link Source="20" Target="21"/>
+<Link Source="20" Target="22"/>
+<Link Source="19" Target="23"/>
+<Link Source="23" Target="24"/>
+<Link Source="24" Target="25"/>
+<Link Source="24" Target="26"/>
+<Link Source="26" Target="27"/>
+<Link Source="26" Target="28"/>
+<Link Source="24" Target="29"/>
+<Link Source="29" Target="30"/>
+<Link Source="30" Target="31"/>
+<Link Source="30" Target="32"/>
+<Link Source="32" Target="33"/>
+<Link Source="32" Target="34"/>
+<Link Source="29" Target="35"/>
+<Link Source="35" Target="36"/>
+<Link Source="36" Target="37"/>
+<Link Source="36" Target="38"/>
+<Link Source="38" Target="39"/>
+<Link Source="38" Target="40"/>
+<Link Source="40" Target="41"/>
+<Link Source="40" Target="42"/>
+<Link Source="23" Target="43"/>
+<Link Source="43" Target="44"/>
+<Link Source="44" Target="45"/>
+<Link Source="45" Target="46"/>
+<Link Source="45" Target="47"/>
+<Link Source="44" Target="48"/>
+</Links>
+</DirectedGraph>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DirectedGraph xmlns="http://schemas.microsoft.com/vs/2009/dgml" Layout="Sugiyama" GraphDirection="TopToBottom">
+<Nodes>
+<Node Id="0" Label="SourceItemList" />
+<Node Id="1" Label="SourceItemList" />
+<Node Id="2" Label="FuncDef" />
+<Node Id="3" Label="funcSignature" />
+<Node Id="4" Label="Identifier: foo" />
+<Node Id="5" Label="" />
+<Node Id="6" Label="argDef" />
+<Node Id="7" Label="Identifier: a" />
+<Node Id="8" Label="int" />
+<Node Id="9" Label="argDef" />
+<Node Id="10" Label="Identifier: b" />
+<Node Id="11" Label="int" />
+<Node Id="12" Label="VoidType" />
+<Node Id="13" Label="ListStatement" />
+<Node Id="14" Label="Assigment" />
+<Node Id="15" Label="Identifier: result" />
+<Node Id="16" Label="Plus" />
+<Node Id="17" Label="Identifier: a" />
+<Node Id="18" Label="Identifier: b" />
+<Node Id="19" Label="ListStatement" />
+<Node Id="20" Label="var" />
+<Node Id="21" Label="Identifier: result" />
+<Node Id="22" Label="int" />
+<Node Id="23" Label="FuncDef" />
+<Node Id="24" Label="funcSignature" />
+<Node Id="25" Label="Identifier: goo" />
+<Node Id="26" Label="EmptyListOpt" />
+<Node Id="27" Label="VoidType" />
+<Node Id="28" Label="ListStatement" />
+<Node Id="29" Label="Assigment" />
+<Node Id="30" Label="Identifier: a" />
+<Node Id="31" Label="CallOrIndexer" />
+<Node Id="32" Label="Identifier: foo" />
+<Node Id="33" Label="ListExpr" />
+<Node Id="34" Label="Number: 5" />
+<Node Id="35" Label="Number: 7" />
+</Nodes>
+<Links>
+<Link Source="0" Target="1"/>
+<Link Source="1" Target="2"/>
+<Link Source="2" Target="3"/>
+<Link Source="3" Target="4"/>
+<Link Source="3" Target="5"/>
+<Link Source="5" Target="6"/>
+<Link Source="6" Target="7"/>
+<Link Source="6" Target="8"/>
+<Link Source="5" Target="9"/>
+<Link Source="9" Target="10"/>
+<Link Source="9" Target="11"/>
+<Link Source="3" Target="12"/>
+<Link Source="2" Target="13"/>
+<Link Source="13" Target="14"/>
+<Link Source="14" Target="15"/>
+<Link Source="14" Target="16"/>
+<Link Source="16" Target="17"/>
+<Link Source="16" Target="18"/>
+<Link Source="13" Target="19"/>
+<Link Source="19" Target="20"/>
+<Link Source="20" Target="21"/>
+<Link Source="20" Target="22"/>
+<Link Source="0" Target="23"/>
+<Link Source="23" Target="24"/>
+<Link Source="24" Target="25"/>
+<Link Source="24" Target="26"/>
+<Link Source="24" Target="27"/>
+<Link Source="23" Target="28"/>
+<Link Source="28" Target="29"/>
+<Link Source="29" Target="30"/>
+<Link Source="29" Target="31"/>
+<Link Source="31" Target="32"/>
+<Link Source="31" Target="33"/>
+<Link Source="33" Target="34"/>
+<Link Source="33" Target="35"/>
+</Links>
+</DirectedGraph>
