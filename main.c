@@ -5,6 +5,7 @@
 #include <string.h>
 #include <assert.h>
 #include "control_graph/control_graph.h"
+#include "defines.h"
 #include <malloc.h>
 
 extern FILE *yyin;
@@ -65,10 +66,10 @@ int main(int argc, char **argv)
       convert_to_dgml(output, root);
       #endif
 
-      struct Node *functions[100];
+      struct Node *functions[max_functions];
       find_func_def(root, functions);
 
-      for (size_t i = 0; i < 100; i++)
+      for (size_t i = 0; i < max_functions; i++)
       {
         if (functions[i] == NULL)
           break;

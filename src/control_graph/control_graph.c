@@ -77,6 +77,7 @@ static ControlGraphNode *binary_operation1(struct Node *node, const char *sign)
     cgn->text = malloc((left_len + right_len + 5 + strlen(sign)) * sizeof(char));
     sprintf(cgn->text, "(%s %s %s)", left->text, sign, right->text);
 
+
     return cgn;
 }
 
@@ -244,9 +245,7 @@ ControlGraphNode *foo(struct Node *node)
     control_node->text = malloc((left_len + right_len + 4) * sizeof(char));
     sprintf(control_node->text, "%s = %s", left->text, right->text);
 
-    OpNode *op = create_operation_tree_node(node);
-
-    control_node->operation_node = op;
+    control_node->operation_node = create_operation_tree_node(node);
 
     return control_node;
     
@@ -450,4 +449,19 @@ void init_control_graph_id(ControlGraphNode *node)
 {
   dgml_id = 1;
   init_control_graph_id_(node);
+}
+
+void free_control_node(ControlGraphNode *node)
+{
+  if (!node)
+    return;
+
+  free_control_node(node->def);
+  free_control_node(node->cond);
+  free_control_node(node->end);
+
+  if (node->text)
+    free(node->text);
+
+  free(node);
 }

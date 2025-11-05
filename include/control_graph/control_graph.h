@@ -30,4 +30,6 @@ void find_func_def(struct Node *root, struct Node **functions);
 
 void init_control_graph_id(ControlGraphNode *node);
 
+void free_control_node(ControlGraphNode *node);
+
 #endif

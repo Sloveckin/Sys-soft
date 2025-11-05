@@ -117,5 +117,8 @@ int write_into_file(char *source_name, struct Node *node)
   }
 
   free(file_name);
+
+  free_control_node(func.control_graph);
+
   return 0;
 }
