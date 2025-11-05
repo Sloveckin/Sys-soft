@@ -247,10 +247,15 @@ ControlGraphNode *foo(struct Node *node)
     if (!second)
       return first;
 
-    if (first->connect_to_end)
-      first->end->def = second;
-    else
-      first->def = second;
+    //if (first->connect_to_end)
+    //  first->end->def = second;
+    //else
+      //first->def = second;
+    
+    ControlGraphNode *last_first = find_last_cgn_node(first);
+    ControlGraphNode *last_second = find_last_cgn_node(second);
+
+    last_first->def = last_second;
 
     return first;
   }
