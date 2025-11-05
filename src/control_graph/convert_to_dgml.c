@@ -96,8 +96,8 @@ int write_into_file(char *source_name, struct Node *node)
   const size_t function_name_len = strlen(func.signature->text);
 
   // 5 for .ext + \0
-  char *file_name = malloc((source_name_len + function_name_len + 5) * sizeof(char));
-  sprintf(file_name, "%s%s.ext", source_name, func.signature->text);
+  char *file_name = malloc((source_name_len + function_name_len + 6) * sizeof(char));
+  sprintf(file_name, "%s%s.dgml", source_name, func.signature->text);
 
   FILE *file = fopen(file_name, "w");
   if (file == NULL)

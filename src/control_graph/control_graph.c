@@ -11,28 +11,10 @@
 
 size_t function_find_index = 0;
 
-void find_func_def(struct Node *root, struct Node **functions)
+
+
+void find_func_def_(struct Node *root, struct Node **functions)
 {
-
-  #if 0
-  if (root == NULL)
-    return root;
-
-  if (strcmp(root->type, "FuncDef") == 0)
-    return root;
-
-  for (size_t i = 0; i < root->children_amount; i++)
-  {
-    struct Node *child = find_func_def(root->children[i]);
-    if (child == NULL)
-      continue;
-
-    return child;
-  }
-
-  return NULL;
-  #endif
-
   if (root == NULL)
     return;
 
@@ -43,9 +25,13 @@ void find_func_def(struct Node *root, struct Node **functions)
   }
 
   for (size_t i = 0; i < root->children_amount; i++)
-  {
-    find_func_def(root->children[i], functions);
-  }
+    find_func_def_(root->children[i], functions);
+}
+
+void find_func_def(struct Node *root, struct Node **functions)
+{
+  function_find_index = 0;
+  find_func_def_(root, functions);
 }
 
 static ControlGraphNode *find_last_cgn_node(ControlGraphNode *node)
@@ -234,15 +220,10 @@ ControlGraphNode *foo(struct Node *node)
     if (!second)
       return first;
 
-    //if (first->connect_to_end)
-    //  first->end->def = second;
-    //else
-      //first->def = second;
-    
     ControlGraphNode *last_first = find_last_cgn_node(first);
-    ControlGraphNode *last_second = find_last_cgn_node(second);
+    //ControlGraphNode *last_second = find_last_cgn_node(second);
 
-    last_first->def = last_second;
+    last_first->def = second;
 
     return first;
   }
@@ -448,7 +429,7 @@ ControlGraphNode *foo(struct Node *node)
 
 size_t dgml_id = 1;
 
-void init_control_graph_id(ControlGraphNode *node)
+void init_control_graph_id_(ControlGraphNode *node)
 {
   if (!node)
     return;
@@ -460,7 +441,13 @@ void init_control_graph_id(ControlGraphNode *node)
   
   node->id = dgml_id++;
   
-  init_control_graph_id(node->def);
-  init_control_graph_id(node->cond);
-  init_control_graph_id(node->end);
+  init_control_graph_id_(node->def);
+  init_control_graph_id_(node->cond);
+  init_control_graph_id_(node->end);
+}
+
+void init_control_graph_id(ControlGraphNode *node)
+{
+  dgml_id = 1;
+  init_control_graph_id_(node);
 }
