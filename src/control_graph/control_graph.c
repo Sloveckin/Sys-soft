@@ -57,6 +57,7 @@ static ControlGraphNode *create_empty_node()
   node->end = NULL;
   node->def = NULL;
   node->cond = NULL;
+  node->operation_node = NULL;
 
   return node;
 }
@@ -248,28 +249,6 @@ ControlGraphNode *foo(struct Node *node)
     control_node->operation_node = create_operation_tree_node(node);
 
     return control_node;
-    
-  }
-
-  if (strcmp(node->type, "SourceItemList") == 0)
-  {
-    // TODO: rewrite when children amount > 1
-
-    for (size_t i = 0; i < node->children_amount; i++)
-    {
-      if (node->children[i] == NULL)
-        continue;
-
-      return foo(node->children[i]);
-    }
-
-  }
-
-  if (strcmp(node->type, "FuncDef") == 0)
-  {
-    assert (node->children_amount == 2);
-    ControlGraphNode *list_statement = foo(node->children[1]);
-    return list_statement;
   }
 
   if (strcmp(node->type, "Plus") == 0)
@@ -309,7 +288,7 @@ ControlGraphNode *foo(struct Node *node)
     return unary_operation(node, "-");
 
   if (strcmp(node->type, "Not") == 0)
-    return unary_operation(node, "not");
+    return unary_operation(node, "not"); 
 
   if (strcmp(node->type, "Identifier") == 0 || strcmp(node->type, "Number") == 0 || strcmp(node->type, "Char") == 0 || strcmp(node->type, "Bool") == 0
                                                    || strcmp(node->type, "Hex") == 0 || strcmp(node->type, "Bits") == 0)
@@ -449,22 +428,4 @@ void init_control_graph_id(ControlGraphNode *node)
 {
   dgml_id = 1;
   init_control_graph_id_(node);
-}
-
-void free_control_node(ControlGraphNode *node)
-{
-  if (!node)
-    return;
-
-  free_control_node(node->def);
-  free_control_node(node->cond);
-  free_control_node(node->end);
-
-  if (node->text)
-    free(node->text);
-
-  if (node->operation_node)
-    free_operation_tree(node->operation_node);
-
-  free(node);
 }
