@@ -11,8 +11,6 @@
 
 size_t function_find_index = 0;
 
-
-
 void find_func_def_(struct Node *root, struct Node **functions)
 {
   if (root == NULL)
@@ -36,6 +34,9 @@ void find_func_def(struct Node *root, struct Node **functions)
 
 static ControlGraphNode *find_last_cgn_node(ControlGraphNode *node)
 {
+  if (!node)
+    return NULL;
+
   if (!node->def && node->connect_to_end == false)
     return node;
 
@@ -63,40 +64,45 @@ static ControlGraphNode *create_empty_node()
 }
 
 
-static ControlGraphNode *binary_operation1(struct Node *node, const char *sign)
+static char *text_from_binary_operation(struct Node *node, const char *sign)
 {
     assert (node->children_amount == 2);
-    ControlGraphNode *left = foo(node->children[0]);
-    ControlGraphNode *right = foo(node->children[1]);
+    char *left_text = get_text(node->children[0]);
+    char *right_text = get_text(node->children[1]);
 
-    const size_t left_len = strlen(left->text);
-    const size_t right_len = strlen(right->text);
+    const size_t left_len = strlen(left_text);
+    const size_t right_len = strlen(right_text);
 
-    ControlGraphNode *cgn = create_empty_node();
-    cgn->operation_node = create_operation_tree_node(node);
+    char *text = malloc((left_len + right_len + 5 + strlen(sign)) * sizeof(char));
+    sprintf(text, "(%s %s %s)", left_text, sign, right_text); 
 
-    cgn->text = malloc((left_len + right_len + 5 + strlen(sign)) * sizeof(char));
-    sprintf(cgn->text, "(%s %s %s)", left->text, sign, right->text);
+    free(left_text);
+    free(right_text);
 
-
-    return cgn;
+    return text;
 }
 
-static ControlGraphNode *unary_operation(struct Node* node, const char *sign)
+static ControlGraphNode *operation(struct Node *node)
 {
-  assert (node->children_amount == 1);
-  ControlGraphNode *child = foo(node->children[0]);
-
-  const size_t text_len = strlen(child->text);
-  const size_t sign_len = strlen(sign);
-
   ControlGraphNode *cgn = create_empty_node();
+  cgn->text = get_text(node);
   cgn->operation_node = create_operation_tree_node(node);
-
-  cgn->text = malloc((text_len + sign_len + 1) * sizeof(char));
-  sprintf(cgn->text, "%s%s", sign, child->text);
-
   return cgn;
+}
+
+static char *get_text_form_unary_operation(struct Node* node, const char *sign)
+{
+  assert(node->children_amount == 1);
+  char *child_text = get_text(node->children[0]);
+
+  const size_t child_text_len = strlen(child_text);
+
+  char *text = malloc((child_text_len + 2) * sizeof(char));
+  sprintf(text, "%s%s", sign, child_text);
+
+  free(child_text);
+  
+  return text;
 }
 
 static ControlGraphNode *if_condition(struct Node *node)
@@ -107,7 +113,10 @@ static ControlGraphNode *if_condition(struct Node *node)
 
     ControlGraphNode *end = create_empty_node();
 
+
     ControlGraphNode *body_last = find_last_cgn_node(body);
+    if (!body_last)
+      body_last = create_empty_node();
 
     if (else_body)
     {
@@ -120,7 +129,11 @@ static ControlGraphNode *if_condition(struct Node *node)
       cond->def = end;
     }
 
-    cond->cond = body;
+    if (body)
+      cond->cond = body;
+    else
+      cond->cond = end;
+
     body_last->def = end;
 
     return cond;
@@ -223,8 +236,6 @@ ControlGraphNode *foo(struct Node *node)
       return first;
 
     ControlGraphNode *last_first = find_last_cgn_node(first);
-    //ControlGraphNode *last_second = find_last_cgn_node(second);
-
     last_first->def = second;
 
     return first;
@@ -235,67 +246,69 @@ ControlGraphNode *foo(struct Node *node)
 
     assert (node->children_amount == 2);
 
-    ControlGraphNode *left = foo(node->children[0]);
-    ControlGraphNode *right = foo(node->children[1]);
+    char *left_text = get_text(node->children[0]);
+    char *right_text = get_text(node->children[1]);
 
-    const size_t left_len = strlen(left->text);
-    const size_t right_len = strlen(right->text);
+    const size_t left_len = strlen(left_text);
+    const size_t right_len = strlen(right_text);
 
-    ControlGraphNode *control_node = create_empty_node();
+    ControlGraphNode *cgn = create_empty_node();
 
-    control_node->text = malloc((left_len + right_len + 4) * sizeof(char));
-    sprintf(control_node->text, "%s = %s", left->text, right->text);
+    cgn->text = malloc((left_len + right_len + 4) * sizeof(char));
+    sprintf(cgn->text, "%s = %s", left_text, right_text);
 
-    control_node->operation_node = create_operation_tree_node(node);
+    free(left_text);
+    free(right_text);
 
-    return control_node;
+    cgn->operation_node = create_operation_tree_node(node);
+
+    return cgn;
   }
 
   if (strcmp(node->type, "Plus") == 0)
-    return binary_operation1(node, "+");
+    return operation(node);
 
   if (strcmp(node->type, "Minus") == 0) 
-    return binary_operation1(node, "-");
+    return operation(node);
 
   if (strcmp(node->type, "Multiply") == 0) 
-    return binary_operation1(node, "*");
+    return operation(node);
 
   if (strcmp(node->type, "Divide") == 0)
-    return binary_operation1(node, "/");
+    return operation(node);
 
   if (strcmp(node->type, "More") == 0)
-    return binary_operation1(node, ">");
+    return operation(node);
 
   if (strcmp(node->type, "Less") == 0)
-    return binary_operation1(node, "<");
+    return operation(node);
 
   if (strcmp(node->type, "Equals") == 0)
-    return binary_operation1(node, "==");
+    return operation(node);
 
   if (strcmp(node->type, "NotEquals") == 0)
-    return binary_operation1(node, "<>");
+    return operation(node);
 
   if (strcmp(node->type, "And") == 0)
-    return binary_operation1(node, "and");
+    return operation(node);
 
   if (strcmp(node->type, "Or") == 0)
-    return binary_operation1(node, "or");
+    return operation(node);
 
   if (strcmp(node->type, "UnaryPlus") == 0)
-    return unary_operation(node, "+");
+    return operation(node);
 
   if (strcmp(node->type, "UnaryMinus") == 0)
-    return unary_operation(node, "-");
+    return operation(node);
 
   if (strcmp(node->type, "Not") == 0)
-    return unary_operation(node, "not"); 
+    return operation(node); 
 
   if (strcmp(node->type, "Identifier") == 0 || strcmp(node->type, "Number") == 0 || strcmp(node->type, "Char") == 0 || strcmp(node->type, "Bool") == 0
                                                    || strcmp(node->type, "Hex") == 0 || strcmp(node->type, "Bits") == 0)
   {
     ControlGraphNode *cgn = create_empty_node();
-    cgn->text = malloc((strlen(node->text) + 1) * sizeof(char));
-    sprintf(cgn->text, "%s", node->text);
+    cgn->text = get_text(node);
     return cgn;
   }
 
@@ -428,4 +441,59 @@ void init_control_graph_id(ControlGraphNode *node)
 {
   dgml_id = 1;
   init_control_graph_id_(node);
+}
+
+
+
+char *get_text(struct Node *node)
+{
+  if (strcmp(node->type, "Identifier") == 0 || strcmp(node->type, "Number") == 0 || strcmp(node->type, "Char") == 0 || strcmp(node->type, "Bool") == 0
+                                                   || strcmp(node->type, "Hex") == 0 || strcmp(node->type, "Bits") == 0)
+  {
+    char *text = malloc((strlen(node->text) + 1) * sizeof(char));
+    sprintf(text, "%s", node->text);
+    return text;
+  }
+
+
+  if (strcmp(node->type, "Plus") == 0)
+    return text_from_binary_operation(node, "+");
+
+  if (strcmp(node->type, "Minus") == 0) 
+    return text_from_binary_operation(node, "-");
+
+  if (strcmp(node->type, "Multiply") == 0) 
+    return text_from_binary_operation(node, "*");
+
+  if (strcmp(node->type, "Divide") == 0)
+    return text_from_binary_operation(node, "/");
+
+  if (strcmp(node->type, "More") == 0)
+    return text_from_binary_operation(node, ">");
+
+  if (strcmp(node->type, "Less") == 0)
+    return text_from_binary_operation(node, "<");
+
+  if (strcmp(node->type, "Equals") == 0)
+    return text_from_binary_operation(node, "==");
+
+  if (strcmp(node->type, "NotEquals") == 0)
+    return text_from_binary_operation(node, "<>");
+
+  if (strcmp(node->type, "And") == 0)
+    return text_from_binary_operation(node, "and");
+
+  if (strcmp(node->type, "Or") == 0)
+    return text_from_binary_operation(node, "or");
+
+  if (strcmp(node->type, "UnaryPlus") == 0)
+    return get_text_form_unary_operation(node, "+");
+
+  if (strcmp(node->type, "UnaryMinus") == 0)
+    return get_text_form_unary_operation(node, "-");
+
+  if (strcmp(node->type, "Not") == 0)
+    return get_text_form_unary_operation(node, "!"); 
+
+  assert (0);
 }
