@@ -15,6 +15,7 @@ main: \
 	src/signature.c \
 	src/control_graph/control_graph.c \
 	src/control_graph/convert_to_dgml.c \
+	src/control_graph/context.c \
 	src/operation_tree.c \
 	generated/parser.tab.c generated/lex.yy.c
 

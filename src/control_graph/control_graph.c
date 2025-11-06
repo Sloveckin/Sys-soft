@@ -173,12 +173,21 @@ static ControlGraphNode *do_until_cycle(struct Node *node)
 
   ControlGraphNode *end = create_empty_node();
 
-  cond->def = end;
   ControlGraphNode *last_stats = find_last_cgn_node(statments);
 
   assert ((strcmp(while_or_until->text, "until") == 0) || (strcmp(while_or_until->text, "while")) == 0);
 
-  cond->cond = statments;
+  if (strcmp(while_or_until->text, "while") == 0)
+  {
+    cond->def = end;
+    cond->cond = statments;
+  }
+  else
+  {
+    cond->def = statments;
+    cond->cond = end;
+  }
+
   last_stats->def = cond;
 
   return statments; 
