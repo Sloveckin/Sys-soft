@@ -1,6 +1,7 @@
 #include "operation_tree.h"
 
 #include <assert.h>
+#include <complex.h>
 #include <stdio.h>
 #include <string.h>
 #include <malloc.h>
@@ -10,13 +11,15 @@ static OpNode *create_op_node()
   OpNode *op = malloc(sizeof(OpNode));
 
   op->children_amount = 0;
-  op->argument = NULL;  
+  op->children = NULL;
+  op->argument = NULL;
 
   return op;
 }
 
 static OpNode *create_store(struct Node *node)
 {
+
   OpNode *op = create_op_node();
 
   op->type = Store;
@@ -37,7 +40,7 @@ static OpNode *create_proc_node(struct Node *node)
   return op;
 }
 
-static OpNode *binary_operation(struct Node *node, OpNodeType type)
+static OpNode *binary_operation(struct Node *node, const OpNodeType type)
 {
     assert (node->children_amount == 2);
     OpNode *op = create_op_node();
@@ -56,7 +59,7 @@ static OpNode *binary_operation(struct Node *node, OpNodeType type)
     return op;
 }
 
-static OpNode *unary_operation(struct Node *node, OpNodeType type)
+static OpNode *unary_operation(struct Node *node, const OpNodeType type)
 {
     OpNode *op = create_op_node();
 
@@ -110,7 +113,6 @@ static OpNode *break_op(struct Node *node)
 
 OpNode *create_operation_tree_node(struct Node *node)
 {
-
   if (strcmp(node->type, "Identifier") == 0 || strcmp(node->type, "Number") == 0)
   {
     OpNode *op = create_op_node();
@@ -132,6 +134,7 @@ OpNode *create_operation_tree_node(struct Node *node)
   {
     assert (node->children_amount == 2);
     OpNode *op = create_op_node();
+    op->type = Assigment;
 
     OpNode *store = create_store(node->children[0]);
     OpNode *load = create_operation_tree_node(node->children[1]);
@@ -141,6 +144,34 @@ OpNode *create_operation_tree_node(struct Node *node)
 
     op->children[0] = store;
     op->children[1] = load;
+
+    return op;
+  }
+
+  if (strcmp(node->type, "Var") == 0) 
+  {
+    OpNode *op = create_op_node();
+    
+    op->type = CREATE_VARIABLE;
+    op->children_amount = 2;
+    op->children = malloc(op->children_amount * sizeof(OpNode *));
+    
+    op->children[0] = create_operation_tree_node(node->children[0]);
+    op->children[1] = create_operation_tree_node(node->children[1]);
+
+    return op;
+  }
+
+  if (strcmp(node->type, "Variables") == 0)
+  {
+    OpNode *op = create_op_node();
+
+    op->type = Variable_list;
+    op->children_amount = node->children_amount;
+    op->children = malloc(op->children_amount * sizeof(OpNode *));
+
+    for (size_t i = 0; i < op->children_amount; i++)
+      op->children[i] = create_operation_tree_node(node->children[i]);
 
     return op;
   }
@@ -193,19 +224,39 @@ OpNode *create_operation_tree_node(struct Node *node)
   if (strcmp(node->type, "Break") == 0)
     return break_op(node);
 
+  if (strcmp(node->type, "int") == 0)
+  {
+    OpNode* op = create_op_node();
+    op->type = Int;
+
+    return op;
+  }
+
+  if (strcmp(node->type, "long") == 0)
+  {
+    OpNode* op = create_op_node();
+    op->type = Long;
+    return op;
+  }
+
+  if (strcmp(node->type, "byte") == 0)
+  {
+    OpNode* op = create_op_node();
+    op->type = Byte;
+    return op;
+  }
+
   assert (0);
 }
 
 void free_operation_tree(OpNode *node)
 {
-  if (!node)
-    return;
-
   for (size_t i = 0; i < node->children_amount; i++)
     free_operation_tree(node->children[i]);
 
   if (node->argument)
     free(node->argument);
 
+  free(node->children);
   free(node);
 }

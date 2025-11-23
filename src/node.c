@@ -19,7 +19,6 @@ struct Node *create_node(size_t amount, char *text, char *type)
   node->text = malloc(sizeof(char) * (strlen(text) + 1));
   strcpy(node->text, text);
 
-
   if (amount == 0)
     return node;
 

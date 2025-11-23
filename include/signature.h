@@ -3,23 +3,19 @@
 
 #include <stddef.h>
 #include "node.h"
+#include "type.h"
 
-typedef enum
-{
-  VOID,
-  BUILTIN,
-  CUSTOM,
-  ARRAY
-} TypeRefType;
 
 typedef struct
 {
-  char *text;
+ char *text;
   size_t argument_amount;
-  TypeRefType *types;
-  TypeRefType returnType;
+  ProgramType *types;
+  ProgramType returnType;
 } Signature;
 
 Signature *init_signature(struct Node *node);
+
+void free_signature(Signature *Signature);
 
 #endif

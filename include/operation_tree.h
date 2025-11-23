@@ -5,7 +5,13 @@
 #include <stddef.h>
 
 typedef enum OperationTreeNodeType {
+  Byte,
+  Int,
+  Long, 
+  Variable_list,
+  CREATE_VARIABLE,
   IDENTIFIER,
+  Assigment,
   Number,
   Load,
   Store,

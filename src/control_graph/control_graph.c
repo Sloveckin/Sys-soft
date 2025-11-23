@@ -46,7 +46,25 @@ static ControlGraphNode *find_last_cgn_node(ControlGraphNode *node)
   return node->end;
 }
 
-static ControlGraphNode *create_empty_node()
+static ControlGraphNode *create_control_node(Contex *context)
+{
+  ControlGraphNode *node = malloc(sizeof(ControlGraphNode));
+  node->id = -1;
+  node->visited = false;
+  node->connect_to_end = false;
+  node->end = NULL;
+  node->def = NULL;
+  node->cond = NULL;
+  node->operation_node = NULL;
+  node->text = NULL;
+
+  context_add_node(context, node);
+
+  return node;
+}
+
+#if 1
+static ControlGraphNode *create_empty_node(Contex *context)
 {
   ControlGraphNode *node = malloc(sizeof(ControlGraphNode));
   node->text = malloc(6 * sizeof(char));
@@ -60,8 +78,11 @@ static ControlGraphNode *create_empty_node()
   node->cond = NULL;
   node->operation_node = NULL;
 
+  context_add_node(context, node);
+
   return node;
 }
+#endif
 
 
 static char *text_from_binary_operation(struct Node *node, const char *sign)
@@ -82,9 +103,9 @@ static char *text_from_binary_operation(struct Node *node, const char *sign)
     return text;
 }
 
-static ControlGraphNode *operation(struct Node *node)
+static ControlGraphNode *operation(Contex *context, struct Node *node)
 {
-  ControlGraphNode *cgn = create_empty_node();
+  ControlGraphNode *cgn = create_control_node(context);
   cgn->text = get_text(node);
   cgn->operation_node = create_operation_tree_node(node);
   return cgn;
@@ -105,18 +126,18 @@ static char *get_text_form_unary_operation(struct Node* node, const char *sign)
   return text;
 }
 
-static ControlGraphNode *if_condition(struct Node *node)
+static ControlGraphNode *if_condition(Contex *context, struct Node *node)
 {
-    ControlGraphNode *cond = foo(node->children[0]);
-    ControlGraphNode *body = foo(node->children[1]);
-    ControlGraphNode *else_body = foo(node->children[2]);
+    ControlGraphNode *cond = foo(context, node->children[0]);
+    ControlGraphNode *body = foo(context, node->children[1]);
+    ControlGraphNode *else_body = foo(context, node->children[2]);
 
-    ControlGraphNode *end = create_empty_node();
+    ControlGraphNode *end = create_empty_node(context);
 
 
     ControlGraphNode *body_last = find_last_cgn_node(body);
     if (!body_last)
-      body_last = create_empty_node();
+      body_last = create_empty_node(context);
 
     if (else_body)
     {
@@ -139,21 +160,21 @@ static ControlGraphNode *if_condition(struct Node *node)
     return cond;
 }
 
-static ControlGraphNode *while_cycle(struct Node* node)
+static ControlGraphNode *while_cycle(Contex *context, struct Node* node)
 {
 
   if (node->children_amount == 0)
   {
-    ControlGraphNode *cgn = create_empty_node();
+    ControlGraphNode *cgn = create_control_node(context);
     cgn->text = malloc(6 * sizeof(char));
     sprintf(cgn->text, "while");
     return cgn;
   }
 
-  ControlGraphNode *cond = foo(node->children[1]);
-  ControlGraphNode *stats = foo(node->children[2]);
+  ControlGraphNode *cond = foo(context, node->children[1]);
+  ControlGraphNode *stats = foo(context, node->children[2]);
 
-  ControlGraphNode *end = create_empty_node();
+  ControlGraphNode *end = create_empty_node(context);
 
   cond->def = end;
   
@@ -165,13 +186,13 @@ static ControlGraphNode *while_cycle(struct Node* node)
   return cond;
 }
 
-static ControlGraphNode *do_until_cycle(struct Node *node) 
+static ControlGraphNode *do_until_cycle(Contex *context, struct Node *node) 
 {
-  ControlGraphNode *statments = foo(node->children[0]);
-  ControlGraphNode *while_or_until = foo(node->children[1]);
-  ControlGraphNode *cond = foo(node->children[2]);
+  ControlGraphNode *statments = foo(context, node->children[0]);
+  ControlGraphNode *while_or_until = foo(context, node->children[1]);
+  ControlGraphNode *cond = foo(context, node->children[2]);
 
-  ControlGraphNode *end = create_empty_node();
+  ControlGraphNode *end = create_empty_node(context);
 
   ControlGraphNode *last_stats = find_last_cgn_node(statments);
 
@@ -194,13 +215,13 @@ static ControlGraphNode *do_until_cycle(struct Node *node)
 }
 
 
-static ControlGraphNode *dim(struct Node *node)
+static ControlGraphNode *dim(Contex *context, struct Node *node)
 {
 
     ControlGraphNode **cgns = malloc(node->children_amount * sizeof(ControlGraphNode*));
     for (size_t i = 0; i < node->children_amount; i++)
     {
-      cgns[i] = foo(node->children[i]);
+      cgns[i] = foo(context, node->children[i]);
     }
 
     size_t need_len = 0;
@@ -211,7 +232,7 @@ static ControlGraphNode *dim(struct Node *node)
     // For commas
     need_len += node->children_amount;
 
-    ControlGraphNode *cgn = create_empty_node();
+    ControlGraphNode *cgn = create_control_node(context);
     cgn->text = malloc(need_len * sizeof(char));
 
     strcpy(cgn->text, cgns[0]->text);
@@ -227,10 +248,14 @@ static ControlGraphNode *dim(struct Node *node)
       strcat(cgn->text, cgns[i]->text);
     }
 
+    //cgn->operation_node = create_operation_tree_node(node);
+
+    free(cgns);
+
     return cgn;
 }
 
-ControlGraphNode *foo(struct Node *node)
+ControlGraphNode *foo(Contex *context, struct Node *node)
 {
 
   if (!node)
@@ -238,8 +263,8 @@ ControlGraphNode *foo(struct Node *node)
 
   if (strcmp(node->type, "ListStatement") == 0)
   {
-    ControlGraphNode *first = foo(node->children[0]);
-    ControlGraphNode *second = foo(node->children[1]);
+    ControlGraphNode *first = foo(context, node->children[0]);
+    ControlGraphNode *second = foo(context, node->children[1]);
 
     if (!second)
       return first;
@@ -261,7 +286,7 @@ ControlGraphNode *foo(struct Node *node)
     const size_t left_len = strlen(left_text);
     const size_t right_len = strlen(right_text);
 
-    ControlGraphNode *cgn = create_empty_node();
+    ControlGraphNode *cgn = create_control_node(context);
 
     cgn->text = malloc((left_len + right_len + 4) * sizeof(char));
     sprintf(cgn->text, "%s = %s", left_text, right_text);
@@ -275,55 +300,55 @@ ControlGraphNode *foo(struct Node *node)
   }
 
   if (strcmp(node->type, "Plus") == 0)
-    return operation(node);
+    return operation(context,node);
 
   if (strcmp(node->type, "Minus") == 0) 
-    return operation(node);
+    return operation(context, node);
 
   if (strcmp(node->type, "Multiply") == 0) 
-    return operation(node);
+    return operation(context, node);
 
   if (strcmp(node->type, "Divide") == 0)
-    return operation(node);
+    return operation(context, node);
 
   if (strcmp(node->type, "More") == 0)
-    return operation(node);
+    return operation(context, node);
 
   if (strcmp(node->type, "Less") == 0)
-    return operation(node);
+    return operation(context, node);
 
   if (strcmp(node->type, "Equals") == 0)
-    return operation(node);
+    return operation(context, node);
 
   if (strcmp(node->type, "NotEquals") == 0)
-    return operation(node);
+    return operation(context, node);
 
   if (strcmp(node->type, "And") == 0)
-    return operation(node);
+    return operation(context, node);
 
   if (strcmp(node->type, "Or") == 0)
-    return operation(node);
+    return operation(context, node);
 
   if (strcmp(node->type, "UnaryPlus") == 0)
-    return operation(node);
+    return operation(context, node);
 
   if (strcmp(node->type, "UnaryMinus") == 0)
-    return operation(node);
+    return operation(context, node);
 
   if (strcmp(node->type, "Not") == 0)
-    return operation(node); 
+    return operation(context, node); 
 
   if (strcmp(node->type, "Identifier") == 0 || strcmp(node->type, "Number") == 0 || strcmp(node->type, "Char") == 0 || strcmp(node->type, "Bool") == 0
                                                    || strcmp(node->type, "Hex") == 0 || strcmp(node->type, "Bits") == 0)
   {
-    ControlGraphNode *cgn = create_empty_node();
+    ControlGraphNode *cgn = create_control_node(context);
     cgn->text = get_text(node);
     return cgn;
   }
 
   if (strcmp(node->type, "Str") == 0)
   {
-    ControlGraphNode *cgn = create_empty_node();
+    ControlGraphNode *cgn = create_control_node(context);
     cgn->text = malloc((strlen(node->text) + 3) * sizeof(char));
     sprintf(cgn->text, "\"%s\"", node->text);
     return cgn;
@@ -332,50 +357,52 @@ ControlGraphNode *foo(struct Node *node)
   if (strcmp(node->type, "Var") == 0)
   {
     assert (node->children_amount == 2);
-    ControlGraphNode *cgn = create_empty_node();
-    ControlGraphNode *variables = foo(node->children[0]);
-    ControlGraphNode *type = foo(node->children[1]);
+    ControlGraphNode *cgn = create_control_node(context);
+    ControlGraphNode *variables = foo(context, node->children[0]);
+    ControlGraphNode *type = foo(context, node->children[1]);
 
     const size_t text_len = strlen(variables->text) + strlen(type->text) + 2;
     cgn->text = malloc(text_len * sizeof(char));
     sprintf(cgn->text, "%s %s", type->text, variables->text);
 
+    cgn->operation_node = create_operation_tree_node(node);
+
     return cgn;
   }
 
   if (strcmp(node->type, "Variables") == 0)
-    return dim(node);
+    return dim(context, node);
 
   if  (strcmp(node->type, "int") == 0 || strcmp(node->type, "string") == 0 || strcmp(node->type, "bool") == 0 || strcmp(node->type, "byte") == 0
                                                   || strcmp(node->type, "uint") == 0 || strcmp(node->type, "long") == 0 || strcmp(node->type, "ulong") == 0 || strcmp(node->type, "char") == 0)
   {
-    ControlGraphNode *cgn = create_empty_node();
+    ControlGraphNode *cgn = create_control_node(context);
     cgn->text = malloc((strlen(node->type) + 1) * sizeof(char));
     sprintf(cgn->text, "%s", node->type);
     return cgn;
   }
 
   if (strcmp(node->type, "If") == 0)
-    return if_condition(node);
+    return if_condition(context, node);
 
   if (strcmp(node->type, "ElseBlock") == 0)
   {
     assert (node->children_amount == 1);
-    return foo(node->children[0]);
+    return foo(context, node->children[0]);
   }
 
   if (strcmp(node->type, "While") == 0)
-    return while_cycle(node);
+    return while_cycle(context, node);
 
   if (strcmp(node->type, "Do") == 0)
-    return do_until_cycle(node);
+    return do_until_cycle(context, node);
 
   if (strcmp(node->type, "CallOrIndexer") == 0)
   {
-    ControlGraphNode *cgn = create_empty_node();
+    ControlGraphNode *cgn = create_control_node(context);
 
-    ControlGraphNode *proc = foo(node->children[0]);
-    ControlGraphNode *var = foo(node->children[1]);
+    ControlGraphNode *proc = foo(context, node->children[0]);
+    ControlGraphNode *var = foo(context, node->children[1]);
 
     const size_t proc_len = strlen(proc->text);
     const size_t var_len = strlen(var->text);
@@ -389,10 +416,10 @@ ControlGraphNode *foo(struct Node *node)
 
   if (strcmp(node->type, "ListExpr") == 0)
   {
-    ControlGraphNode *cgn = create_empty_node();
+    ControlGraphNode *cgn = create_control_node(context);
 
-    ControlGraphNode *first = foo(node->children[0]);
-    ControlGraphNode *second = foo(node->children[1]);
+    ControlGraphNode *first = foo(context, node->children[0]);
+    ControlGraphNode *second = foo(context, node->children[1]);
 
     const size_t proc_len = strlen(first->text);
     const size_t var_len = strlen(second->text);
@@ -407,7 +434,7 @@ ControlGraphNode *foo(struct Node *node)
 
   if (strcmp(node->type, "Break") == 0)
   {
-    ControlGraphNode *cgn = create_empty_node();
+    ControlGraphNode *cgn = create_control_node(context);
     cgn->text = malloc(6 * sizeof(char));
     sprintf(cgn->text, "%s", "Break");
 
@@ -418,7 +445,7 @@ ControlGraphNode *foo(struct Node *node)
 
   if (strcmp(node->type, "Until") == 0)
   {
-    ControlGraphNode *cgn = create_empty_node();
+    ControlGraphNode *cgn = create_control_node(context);
     cgn->text = malloc(6 * sizeof(char));
     sprintf(cgn->text, "until");
     return cgn;
@@ -506,3 +533,18 @@ char *get_text(struct Node *node)
 
   assert (0);
 }
+
+
+void free_control_graph_node(ControlGraphNode *node)
+{
+  assert(node);
+
+  if (node->operation_node)
+    free_operation_tree(node->operation_node);
+
+  if (node->text)
+    free(node->text);
+
+  free(node);
+}
+

@@ -1,5 +1,9 @@
 #include "control_graph/converter_to_dgml.h"
+#include "function.h"
+#include "include/asm/Asm.h"
+#include "include/asm/generate_asm.h"
 #include "parser.tab.h"
+#include "yylex.h"
 #include "node.h"
 #include <stdio.h>
 #include <string.h>
@@ -67,16 +71,32 @@ int main(int argc, char **argv)
       #endif
 
       struct Node *functions[max_functions];
+      memset(functions, 0, max_functions * sizeof(struct Node *));
       find_func_def(root, functions);
+
 
       for (size_t i = 0; i < max_functions; i++)
       {
         if (functions[i] == NULL)
           break;
-        write_into_file(argv[j], functions[i]);
+
+        Contex context;
+        init_context(&context);
+
+        Function func = {
+          .signature = init_signature(functions[i]->children[0]),
+          .control_graph = foo(&context, functions[i]->children[1]),
+        };
+
+        Asm asmm;
+        init_Asm(&asmm);
+        start_generate_asm(&asmm, &func);
+
+        write_into_file(&context, argv[j], &func);
+
       }
       memset(functions, 0, sizeof(functions));
-
+      yylex_destroy();
     }
 
     free_node(root);

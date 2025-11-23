@@ -55,9 +55,6 @@ static void print_link(FILE *file, ControlGraphNode* node)
   if (node->cond)
     fprintf(file, "<Link Source=\"%zu\" Target=\"%zu\" StrokeDashArray=\"4,2\" />\n", node->id, node->cond->id);
 
-  //if (node->end)
-  //  fprintf(file, "<Link Source=\"%zu\" Target=\"%zu\" Stroke=\"Red\" />\n", node->id, node->end->id);
-
   print_link(file, node->def);
   print_link(file, node->cond);
   print_link(file, node->end);
@@ -84,31 +81,32 @@ void control_graph_to_dgml(char *function_name, FILE *file, ControlGraphNode *no
 
 
 
-int write_into_file(char *source_name, struct Node *node)
+int write_into_file(Contex *context, char *source_name, Function *func /*struct Node *node*/)
 {
 
-  Function func = {
+  /*Function func = {
     .signature = init_signature(node->children[0]),
-    .control_graph = foo(node->children[1]),
-  };
+    .control_graph = foo(context, node->children[1]),
+  };*/
+
 
   const size_t source_name_len = strlen(source_name);
-  const size_t function_name_len = strlen(func.signature->text);
+  const size_t function_name_len = strlen(func->signature->text);
 
   // 5 for .ext + \0
   char *file_name = malloc((source_name_len + function_name_len + 6) * sizeof(char));
-  sprintf(file_name, "%s%s.dgml", source_name, func.signature->text);
+  sprintf(file_name, "%s%s.dgml", source_name, func->signature->text);
 
   FILE *file = fopen(file_name, "w");
   if (file == NULL)
   {
-    fprintf(stderr, "Can't create file %s", func.signature->text);
+    fprintf(stderr, "Can't create file %s", func->signature->text);
     free(file_name);
     return -1;
   }
 
-  init_control_graph_id(func.control_graph);
-  control_graph_to_dgml(func.signature->text, file, func.control_graph);
+  init_control_graph_id(func->control_graph);
+  control_graph_to_dgml(func->signature->text, file, func->control_graph);
 
   int err = fclose(file);
   if (err)
@@ -117,8 +115,8 @@ int write_into_file(char *source_name, struct Node *node)
   }
 
   free(file_name);
-
-  //free_control_node(func.control_graph);
+  free_context(context);
+  free_signature(func->signature);
 
   return 0;
 }
