@@ -1,7 +1,7 @@
 #include "control_graph/converter_to_dgml.h"
 #include "function.h"
-#include "include/asm/Asm.h"
 #include "include/asm/generate_asm.h"
+#include "include/asm/instruction_list.h"
 #include "parser.tab.h"
 #include "yylex.h"
 #include "node.h"
@@ -89,8 +89,11 @@ int main(int argc, char **argv)
         };
 
         Asm asmm;
-        init_Asm(&asmm);
-        start_generate_asm(&asmm, &func);
+        InstructionListNode *list = malloc(sizeof(InstructionListNode));;
+        init_asm(&asmm);
+        start_generate_asm(&asmm, &func, list);
+
+        print_list(list);
 
         write_into_file(&context, argv[j], &func);
 

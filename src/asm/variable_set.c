@@ -62,7 +62,7 @@ ProgramType find_program_type(Variables *vars, char *name, bool *found)
 
 void free_variables(Variables *vars)
 {
-  for (size_t i = 0; i < vars->capacity; i++)
+  for (size_t i = 0; i < vars->size; i++)
     free(vars->variables[i]);
 
   free(vars->variables);

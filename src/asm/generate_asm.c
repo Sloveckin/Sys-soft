@@ -1,21 +1,181 @@
 #include "asm/generate_asm.h"
-#include "asm/variable_set.h"
 
 #include <stdio.h>
 #include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 
-size_t multiply_to_16(size_t amount)
+#include "asm/asm.h"
+#include "asm/variable_set.h"
+#include "asm/instruction_list.h"
+
+static size_t multiply_to_16(size_t amount)
 {
   while (amount % 16 != 0)
-  {
     amount++;
-  }
 
   return amount;
 }
 
-int start_generate_asm(Asm *asmm, Function *foo)
+static int preamble(Asm *asmm, Function *foo, InstructionListNode *list, int stack_frame)
+{
+
+  Operand sp_op;
+  sp_op.operand_type = Reg;
+  sp_op.reg = sp;
+
+  Operand offset;
+  offset.operand_type = Value;
+  offset.value = -stack_frame;
+
+
+  Instruction addi = {
+    .mnemonic = MN_ADDI,
+    .operand_amount = 3,
+    .first_operand = sp_op,
+    .second_operand = sp_op,
+    .third_operand = offset,
+  };
+
+
+  list->instruction = addi;
+
+  Instruction sd1 = {
+    .mnemonic = MN_SD,
+    .operand_amount = 2,
+    .first_operand = {
+      .operand_type = Reg,
+      .reg = ra,
+    },
+    .second_operand = {
+      .operand_type = OnStack,
+      .stack = {
+        .reg = sp,
+        .offset = asmm->integer_on_stack[ra],
+      }
+    }
+  };
+
+  add_instruction(list, sd1);
+
+
+  Instruction sd2 = {
+    .mnemonic = MN_SD,
+    .operand_amount = 2,
+    .first_operand = {
+      .operand_type = Reg,
+      .reg = s0,
+    },
+    .second_operand = {
+      .operand_type = OnStack,
+      .stack = {
+        .offset = asmm->integer_on_stack[s0],
+        .reg = sp,
+      }
+    }
+  };
+
+  add_instruction(list, sd2);
+
+
+  Instruction addi2 = {
+    .mnemonic = MN_ADDI,
+    .operand_amount = 3,
+    .first_operand = {
+      .operand_type = Reg,
+      .reg = s0
+    },
+    .second_operand = {
+      .operand_type = Reg,
+      .reg = sp,
+    },
+    .third_operand = {
+      .operand_type = Value,
+      .value = stack_frame,
+    }
+  };
+
+  add_instruction(list, addi2);
+}
+
+static int epilog(Asm *asmm, InstructionListNode *list, int stack_frame)
+{
+  int err = 0;
+  //printf("ld ra, %d(sp)\n", asmm->integer_on_stack[ra]);
+  Instruction instr1 = {
+    .mnemonic = MN_LD,
+    .operand_amount = 2,
+    .first_operand = {
+      .operand_type = Reg,
+      .reg = ra
+    },
+    .second_operand = {
+      .operand_type = OnStack,
+      .stack = {
+        .offset = asmm->integer_on_stack[ra],
+        .reg = sp
+      }
+    }
+  };
+  err = add_instruction(list, instr1);
+  if (err)
+    return err;
+  
+  //printf("ld s0, %d(sp)\n", asmm->integer_on_stack[s0]);
+  Instruction instr2 = {
+    .mnemonic = MN_LD,
+    .operand_amount = 2,
+    .first_operand = {
+      .operand_type = Reg,
+      .reg = s0,
+    },
+    .second_operand = {
+      .operand_type = OnStack,
+      .stack = {
+        .offset = asmm->integer_on_stack[s0],
+        .reg = sp
+      }
+    }
+  };
+  err = add_instruction(list, instr2);
+  if (err)
+    return err;
+
+  //printf("addi sp, sp, %zu\n", stack_frame);
+  Instruction instr3 = {
+    .mnemonic = MN_ADDI,
+    .operand_amount = 3,
+    .first_operand = {
+      .operand_type = Reg,
+      .reg = sp
+    },
+    .second_operand = {
+      .operand_type = Reg,
+      .reg = sp
+    },
+    .third_operand = {
+      .operand_type = Value,
+      .value = stack_frame,
+    }
+  };
+  err = add_instruction(list, instr3);
+  if (err)
+    return err;
+
+  Instruction ret = {
+    .mnemonic = MN_RET,
+    .operand_amount = 0
+  };
+
+  err = add_instruction(list, ret);
+  if (err)
+    return err;
+
+
+  return 0;
+}
+
+int start_generate_asm(Asm *asmm, Function *foo, InstructionListNode *list)
 {
   Variables vars;
   init_variables(&vars);
@@ -30,8 +190,9 @@ int start_generate_asm(Asm *asmm, Function *foo)
   }
 
   size_t stack_frame = 16;
-  asmm->int_register.ra = 8;
-  asmm->int_register.s[0] = 0;
+  asmm->integer_on_stack[ra] = 8;
+  asmm->integer_on_stack[s0] = 0;
+
   for (size_t i = 0; i < vars.size; i++)
   {
     stack_frame += byte_amount(vars.variables[i]->type);
@@ -41,24 +202,24 @@ int start_generate_asm(Asm *asmm, Function *foo)
   stack_frame = multiply_to_16(stack_frame);
 
   printf("%s:\n", foo->signature->text);
-  printf("addi sp, sp, -%zu\n", stack_frame);
-  printf("sd ra, %zu(sp)\n", asmm->int_register.ra);
-  printf("sd s0, %zu(sp)\n", asmm->int_register.s[0]);
-  printf("addi s0, sp, %zu\n", stack_frame);
 
 
+  preamble(asmm, foo, list, stack_frame);
 
   if (!start_node)
   {
     free_variables(&vars);
+    epilog(asmm, list, stack_frame); 
     return 0; 
   }
 
-  generate_asm(start_node, asmm, &vars);
-  
-  printf("ld ra, %zu(sp)\n", asmm->int_register.ra);
-  printf("ld s0, %zu(sp)\n", asmm->int_register.s[0]);
-  printf("addi sp, sp, %zu\n", stack_frame);
+  err = generate_asm(start_node, asmm, &vars, list);
+  if (err)
+    return err;
+
+  epilog(asmm, list, stack_frame); 
+
+  //puts("ret");
 
   return 0;
 }
@@ -96,11 +257,9 @@ static int get_variable_name(OpNode *node, Variables *vars, ProgramType var_type
 
 ControlGraphNode *collect_variables(Function *foo, Variables *vars, int *err)
 {
-
   ControlGraphNode *node = foo->control_graph;
-  while (node->operation_node->type == CREATE_VARIABLE)
+  while (node != NULL && node->operation_node->type == CREATE_VARIABLE)
   {
-
     OpNode *variable_list = node->operation_node->children[0];
     OpNode *type = node->operation_node->children[1];
     ProgramType var_type = typeRefTypeFromOpType(type->type);
@@ -119,55 +278,119 @@ ControlGraphNode *collect_variables(Function *foo, Variables *vars, int *err)
   }
 
   // In this case node is last
-  if (node->operation_node->type == CREATE_VARIABLE)
+  if (node == NULL || node->operation_node->type == CREATE_VARIABLE)
     return NULL;
 
   return node;
 }
 
-static int generate(OpNode *node, Asm *assm, Variables *vars)
+static int load_const(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list)
 {
-  if (node->type == Assigment)
+  int reg = find_free_tmp_register(asmm);
+  if (reg == -1)
+  {
+    puts("Temp registers not allowed");
+    assert (0);
+  }
+  asmm->interger_register[reg] = true;
+
+  Instruction instruction = {
+    .mnemonic = MN_ADDI,
+    .operand_amount = 3,
+    .first_operand = {
+      .operand_type = Reg,
+      .reg = reg,
+    },
+    .second_operand = {
+      .operand_type = Reg,
+      .reg = 0,
+    },
+    .third_operand = {
+      .operand_type = Value,
+      .value = atoi(node->argument)
+    }
+  };
+
+  add_instruction(list, instruction);
+
+  return 0;
+}
+
+static int load_variable(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list)
+{
+  int free_reg = find_free_tmp_register(asmm);
+  if (free_reg == -1)
+  {
+    puts("Temp register not allowed\n");
+    assert (0);
+  }
+  asmm->interger_register[free_reg] = true;
+
+  bool found = false;
+  ProgramType type = find_program_type(vars, node->argument, &found);
+  if (!found)
+  {
+    return -3;
+  }
+
+  int offset = find_offset(vars, node->argument, &found);
+
+  Mnemonic mnemonic;
+  if (type == INT_TYPE) 
+      mnemonic = MN_LW;
+  else if (type == BYTE_TYPE)
+      mnemonic = MN_LB;
+  else if (type == LONG_TYPE)
+      mnemonic = MN_LD;
+
+  Instruction instr_from_mem_to_reg = {
+    .mnemonic = mnemonic,
+    .operand_amount = 2,
+    .first_operand = {
+      .operand_type = Reg,
+      .reg = free_reg
+    },
+    .second_operand = {
+      .operand_type = OnStack,
+      .stack = {
+        .offset = -offset,
+        .reg = s0,
+      }
+    }
+  };
+
+  add_instruction(list, instr_from_mem_to_reg);
+
+  return 0;
+}
+
+static int load_from(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list)
+{
+  if (node->type == CONST)
+    return load_const(node, asmm, vars, list);
+  else if (node->type == Load)
+    return load_variable(node, asmm, vars, list);
+  else if (node->type == ADD)
   {
     OpNode *left = node->children[0];
     OpNode *right = node->children[1];
 
-    bool found;
-    size_t offset = find_offset(vars, left->argument, &found);
-    if (!found)
-      return -2;
+    int err = load_from(left, asmm, vars, list);
+    if (err)
+      return err;
 
-    ProgramType type = find_program_type(vars, left->argument, &found);
+    err = load_from(right, asmm, vars, list);
+    if (err)
+      return err;
 
-    if (right->type == CONST)
-      printf("addi t0, zero, %s\n", right->argument);
-    else 
+    int reg1 = find_busy_tmp_register(asmm);
+    if (reg1 == -1)
     {
-      size_t right_offset = find_offset(vars, right->argument, &found);
-      if (!found)
-        return -2;
-
-      ProgramType right_type = find_program_type(vars, right->argument, &found);
-
-      if (right_type == INT_TYPE)      
-        printf("lw t0, -%zu(s0)\n", right_offset);
-      else if (right_type == BYTE_TYPE)
-        printf("lb t0, -%zu(s0)\n", right_offset);
-      else if (right_type == LONG_TYPE)
-        printf("ld t0, -%zu(s0)\n", right_offset);
-      else
-        assert (0);
-
+      puts("Something wrong");
+      assert (0);
     }
 
-    if (type == INT_TYPE)
-      printf("sw t0, -%zu(s0)\n", offset);
-    else if (type == BYTE_TYPE)
-      printf("sb t0, -%zu(s0)\n", offset);
-    else if (type == LONG_TYPE)
-      printf("sd t0, -%zu(s0)\n", offset);
-    else
-      assert (0);
+    
 
     return 0;
   }
@@ -175,15 +398,87 @@ static int generate(OpNode *node, Asm *assm, Variables *vars)
   assert (0);
 }
 
-int generate_asm(ControlGraphNode *node, Asm *assm, Variables *vars)
+static int store_in_variable(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list)
 {
-  int err = generate(node->operation_node, assm, vars);
+  if (node->type != Store)
+    return -2;
+
+  bool found = false;
+  ProgramType type = find_program_type(vars, node->argument, &found);
+  if (!found)
+    return -3;
+
+  int offset = find_offset(vars, node->argument, &found);
+
+  Mnemonic mnemonic;
+  if (type == INT_TYPE) 
+    mnemonic = MN_SW;
+  else if (type == BYTE_TYPE)
+    mnemonic = MN_SB;
+  else if (type == LONG_TYPE)
+    mnemonic = MN_SD;
+
+  int reg = find_busy_tmp_register(asmm);
+  if (reg == -1)
+  {
+    puts("Something wrong");
+    return -1;
+  }
+
+  Instruction instruction = {
+    .mnemonic = mnemonic,
+    .operand_amount = 2,
+    .first_operand = {
+      .operand_type = Reg,
+      .reg = reg
+    },
+    .second_operand = {
+      .operand_type = OnStack,
+      .stack = {
+        .offset = -offset,
+        .reg = s0
+      }
+    }
+  };
+
+  asmm->interger_register[reg] = false;
+
+  add_instruction(list, instruction);
+
+  return 0;
+  
+}
+
+static int generate(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list)
+{
+  if (node->type == Assigment)
+  {
+    OpNode *left = node->children[0];
+    OpNode *right = node->children[1];
+
+    int err = load_from(right, asmm, vars, list);
+    if (err)
+      return err;
+
+    err = store_in_variable(left, asmm, vars, list);
+    if (err)
+      return err;
+
+    return 0;
+  }
+
+
+  assert (0);
+}
+
+int generate_asm(ControlGraphNode *node, Asm *assm, Variables *vars, InstructionListNode *list)
+{
+  int err = generate(node->operation_node, assm, vars, list);
   if (err)
     return err;
 
   if (!node->def)
     return 0;
 
-  err = generate_asm(node->def, assm, vars);
-  return err;
+  return generate_asm(node->def, assm, vars, list);
 }

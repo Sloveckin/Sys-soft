@@ -16,9 +16,10 @@ main: \
 	src/signature.c \
 	src/control_graph/control_graph.c \
 	src/control_graph/convert_to_dgml.c \
-	src/asm/Asm.c \
+	src/asm/asm.c \
 	src/asm/generate_asm.c \
 	src/asm/variable_set.c \
+	src/asm/instruction_list.c \
 	src/type.c \
 	src/control_graph/context.c \
 	src/operation_tree.c \
