@@ -45,16 +45,29 @@ int find_free_tmp_register(Asm *asmm)
 int find_busy_tmp_register(Asm *asmm, int index)
 {
 
+  int count = 0;;
   for (size_t i = 28; i < 32; i++)
   {
     if (asmm->interger_register[i] == true)
-      return i;
+    {
+      if (count == index)
+      {
+        return i;
+      }
+      count++;
+    }
   }
 
   for (size_t i = 5; i <= 7; i++)
   {
     if (asmm->interger_register[i] == true)
-      return i;
+    {
+      if (count == index)
+      {
+        return i;
+      }
+      count++;
+    }
   }
 
   return -1;

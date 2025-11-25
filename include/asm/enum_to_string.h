@@ -45,7 +45,10 @@ const char *const mnemonic_to_string[] = {
   "ld",
   "lw",
   "lb",
-  "ret"
+  "ret",
+  "sub",
+  "mul",
+  "divw",
 };
 
 

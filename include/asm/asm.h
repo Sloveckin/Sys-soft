@@ -14,7 +14,10 @@ typedef enum
   MN_LD = 5,
   MN_LW = 6,
   MN_LB = 7,
-  MN_RET = 8
+  MN_RET = 8,
+  MN_SUB = 9,
+  MN_MUL = 10,
+  MN_DIV = 11
 } Mnemonic;
 
 

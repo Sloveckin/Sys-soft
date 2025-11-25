@@ -370,7 +370,7 @@ static int load_from(OpNode *node, Asm *asmm, Variables *vars, InstructionListNo
     return load_const(node, asmm, vars, list);
   else if (node->type == Load)
     return load_variable(node, asmm, vars, list);
-  else if (node->type == ADD)
+  else if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV)
   {
     OpNode *left = node->children[0];
     OpNode *right = node->children[1];
@@ -383,14 +383,46 @@ static int load_from(OpNode *node, Asm *asmm, Variables *vars, InstructionListNo
     if (err)
       return err;
 
-    int reg1 = find_busy_tmp_register(asmm);
+    int reg1 = find_busy_tmp_register(asmm, 0);
     if (reg1 == -1)
     {
       puts("Something wrong");
       assert (0);
     }
 
+    int reg2 = find_busy_tmp_register(asmm, 1);
+    if (reg2 == -1)
+    {
+      puts("Something wrong");
+      assert (0);
+    }
+
+    Mnemonic mnemonic;
+    if (node->type == ADD)
+      mnemonic = MN_ADD;
+    else if (node->type == SUB)
+      mnemonic = MN_SUB;
+    else if (node->type == MUL)
+      mnemonic = MN_MUL;
+    else if (node->type == DIV)
+      mnemonic = MN_DIV;
+
+    Instruction add = {
+      .mnemonic = mnemonic,
+      .operand_amount = 2,
+      .first_operand = {
+        .operand_type = Reg,
+        .reg = reg1,
+      },
+      .second_operand = {
+        .operand_type = Reg,
+        .reg = reg2,
+      }
+    };
+
+    asmm->interger_register[reg2] = false;
     
+    add_instruction(list, add);
 
     return 0;
   }
@@ -418,7 +450,7 @@ static int store_in_variable(OpNode *node, Asm *asmm, Variables *vars, Instructi
   else if (type == LONG_TYPE)
     mnemonic = MN_SD;
 
-  int reg = find_busy_tmp_register(asmm);
+  int reg = find_busy_tmp_register(asmm, 0);
   if (reg == -1)
   {
     puts("Something wrong");
