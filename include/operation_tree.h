@@ -5,9 +5,11 @@
 #include <stddef.h>
 
 typedef enum OperationTreeNodeType {
+  Bool_Type,
   Byte,
   Int,
   Long, 
+  Bool,
   Variable_list,
   CREATE_VARIABLE,
   IDENTIFIER,

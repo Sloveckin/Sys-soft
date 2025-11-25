@@ -226,7 +226,7 @@ OpNode *create_operation_tree_node(struct Node *node)
 
   if (strcmp(node->type, "int") == 0)
   {
-    OpNode* op = create_op_node();
+    OpNode *op = create_op_node();
     op->type = Int;
 
     return op;
@@ -234,15 +234,31 @@ OpNode *create_operation_tree_node(struct Node *node)
 
   if (strcmp(node->type, "long") == 0)
   {
-    OpNode* op = create_op_node();
+    OpNode *op = create_op_node();
     op->type = Long;
     return op;
   }
 
   if (strcmp(node->type, "byte") == 0)
   {
-    OpNode* op = create_op_node();
+    OpNode *op = create_op_node();
     op->type = Byte;
+    return op;
+  }
+
+  if (strcmp(node->type, "bool") == 0)
+  {
+    OpNode *op = create_op_node();
+    op->type = Bool_Type;
+    return op;
+  }
+
+  if (strcmp(node->type, "Bool") == 0)
+  {
+    OpNode *op = create_op_node();
+    op->type = Bool;
+    op->argument = malloc(strlen(node->text) * sizeof(char));
+    sprintf(op->argument, "%s", node->text);
     return op;
   }
 

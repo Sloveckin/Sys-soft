@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#define LABEL_LENGTH 128
+
 typedef enum
 {
   MN_ADDI = 0,
@@ -90,6 +92,21 @@ typedef struct
 
 typedef struct
 {
+  char buffer[LABEL_LENGTH];
+} Label;
+
+typedef struct 
+{
+  bool is_label;
+  union 
+  {
+    Instruction instruction;
+    Label label;
+  } data;
+} Line;
+
+typedef struct
+{
   bool interger_register[31];
   int integer_on_stack[31];
 } Asm;
@@ -100,7 +117,7 @@ int find_free_tmp_register(Asm *assm);
 
 int find_busy_tmp_register(Asm *assm, int index);
 
-void instruction_to_str(Instruction *instruction);
+void instruction_to_str(Line *instruction);
 
 void operand_to_str(Operand *operand, char *buffer);
 

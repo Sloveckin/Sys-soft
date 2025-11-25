@@ -83,39 +83,48 @@ void init_asm(Asm *asmm)
   }
 }
 
-void instruction_to_str(Instruction *instruction)
+void instruction_to_str(Line *line)
 {
-  if (instruction->operand_amount == 0)
+
+  if (line->is_label)
   {
-    printf("\t%s\n", mnemonic_to_string[instruction->mnemonic]);
+    printf("%s:\n", line->data.label.buffer);
+    return;
   }
-  else if (instruction->operand_amount == 1)
+
+  Instruction instruction = line->data.instruction;
+
+  if (instruction.operand_amount == 0)
+  {
+    printf("\t%s\n", mnemonic_to_string[instruction.mnemonic]);
+  }
+  else if (instruction.operand_amount == 1)
   {
     char buffer[128];
-    operand_to_str(&instruction->first_operand, buffer);
-    printf("\t%s %s\n", mnemonic_to_string[instruction->mnemonic], buffer);
+    operand_to_str(&instruction.first_operand, buffer);
+    printf("\t%s %s\n", mnemonic_to_string[instruction.mnemonic], buffer);
   }
-  else if (instruction->operand_amount == 2)
+  else if (instruction.operand_amount == 2)
   {
     char buffer1[128];
     char buffer2[128];
 
-    operand_to_str(&instruction->first_operand, buffer1);
-    operand_to_str(&instruction->second_operand, buffer2);
+    operand_to_str(&instruction.first_operand, buffer1);
+    operand_to_str(&instruction.second_operand, buffer2);
 
-    printf("\t%s %s, %s\n", mnemonic_to_string[instruction->mnemonic], buffer1, buffer2);
+    printf("\t%s %s, %s\n", mnemonic_to_string[instruction.mnemonic], buffer1, buffer2);
   }
-  else if (instruction->operand_amount == 3)
+  else if (instruction.operand_amount == 3)
   {
     char buffer1[128];
     char buffer2[128];
     char buffer3[128];
 
-    operand_to_str(&instruction->first_operand, buffer1);
-    operand_to_str(&instruction->second_operand, buffer2);
-    operand_to_str(&instruction->third_operand, buffer3);
+    operand_to_str(&instruction.first_operand, buffer1);
+    operand_to_str(&instruction.second_operand, buffer2);
+    operand_to_str(&instruction.third_operand, buffer3);
 
-    printf("\t%s %s, %s, %s\n", mnemonic_to_string[instruction->mnemonic], buffer1, buffer2, buffer3);
+    printf("\t%s %s, %s, %s\n", mnemonic_to_string[instruction.mnemonic], buffer1, buffer2, buffer3);
   }
 
 }

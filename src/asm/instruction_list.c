@@ -2,19 +2,19 @@
 
 #include <malloc.h>
 
-int add_instruction(InstructionListNode *list, Instruction instruction)
+int line_list_add(LineListNode *list, Line line)
 {
-  InstructionListNode *current = list;
+  LineListNode *current = list;
   while (current->next != NULL)
   {
     current = current->next;
   }
 
-  InstructionListNode *new_node = malloc(sizeof(InstructionListNode));
+  LineListNode *new_node = malloc(sizeof(LineListNode));
   if (!new_node)
     return -1;
 
-  new_node->instruction = instruction;
+  new_node->line = line;
   new_node->next = NULL;
 
   current->next = new_node;
@@ -22,7 +22,7 @@ int add_instruction(InstructionListNode *list, Instruction instruction)
   return 0;
 }
 
-void free_instruction_list(InstructionListNode *list)
+void free_instruction_list(LineListNode *list)
 {
   if (!list)
     return;
@@ -32,13 +32,13 @@ void free_instruction_list(InstructionListNode *list)
   free(list);
 }
 
-void print_list(InstructionListNode *list)
+void print_list(LineListNode *list)
 {
-  InstructionListNode *current = list;
+  LineListNode *current = list;
   while (current->next != NULL)
   {
-    instruction_to_str(&current->instruction);
+    instruction_to_str(&current->line);
     current = current->next;
   }
-  instruction_to_str(&current->instruction);
+  instruction_to_str(&current->line);
 }

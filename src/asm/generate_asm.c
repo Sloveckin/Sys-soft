@@ -1,5 +1,6 @@
 #include "asm/generate_asm.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <malloc.h>
 #include <stdlib.h>
@@ -18,7 +19,7 @@ static size_t multiply_to_16(size_t amount)
   return amount;
 }
 
-static int preamble(Asm *asmm, Function *foo, InstructionListNode *list, int stack_frame)
+static int preamble(Asm *asmm, Function *foo, LineListNode *list, int stack_frame)
 {
 
   Operand sp_op;
@@ -39,7 +40,14 @@ static int preamble(Asm *asmm, Function *foo, InstructionListNode *list, int sta
   };
 
 
-  list->instruction = addi;
+  Line addi_line = {
+    .is_label = false,
+    .data.instruction = addi
+  };
+
+  int err = line_list_add(list, addi_line);
+  if (err)
+    return err;
 
   Instruction sd1 = {
     .mnemonic = MN_SD,
@@ -56,9 +64,14 @@ static int preamble(Asm *asmm, Function *foo, InstructionListNode *list, int sta
       }
     }
   };
+  Line line1 = {
+    .is_label = false,
+    .data.instruction = sd1
+  };
 
-  add_instruction(list, sd1);
-
+  err = line_list_add(list, line1);
+  if (err)
+    return err;
 
   Instruction sd2 = {
     .mnemonic = MN_SD,
@@ -75,9 +88,14 @@ static int preamble(Asm *asmm, Function *foo, InstructionListNode *list, int sta
       }
     }
   };
+  Line line2 = {
+    .is_label = false,
+    .data.instruction = sd2
+  };
 
-  add_instruction(list, sd2);
-
+  err = line_list_add(list, line2);
+  if (err)
+    return err;
 
   Instruction addi2 = {
     .mnemonic = MN_ADDI,
@@ -96,10 +114,19 @@ static int preamble(Asm *asmm, Function *foo, InstructionListNode *list, int sta
     }
   };
 
-  add_instruction(list, addi2);
+  Line line_addi2 = {
+    .is_label = false,
+    .data.instruction  = addi2
+  };
+
+  err = line_list_add(list, line_addi2);
+  if (err)
+    return err;
+
+  return 0;
 }
 
-static int epilog(Asm *asmm, InstructionListNode *list, int stack_frame)
+static int epilog(Asm *asmm, LineListNode *list, int stack_frame)
 {
   int err = 0;
   //printf("ld ra, %d(sp)\n", asmm->integer_on_stack[ra]);
@@ -118,7 +145,13 @@ static int epilog(Asm *asmm, InstructionListNode *list, int stack_frame)
       }
     }
   };
-  err = add_instruction(list, instr1);
+
+  Line line1 = {
+    .is_label = false,
+    .data.instruction = instr1
+  };
+
+  err = line_list_add(list, line1);
   if (err)
     return err;
   
@@ -138,7 +171,12 @@ static int epilog(Asm *asmm, InstructionListNode *list, int stack_frame)
       }
     }
   };
-  err = add_instruction(list, instr2);
+  Line line2 = {
+    .is_label = false,
+    .data.instruction = instr2
+  };
+
+  err = line_list_add(list, line2);
   if (err)
     return err;
 
@@ -159,7 +197,12 @@ static int epilog(Asm *asmm, InstructionListNode *list, int stack_frame)
       .value = stack_frame,
     }
   };
-  err = add_instruction(list, instr3);
+  Line line3 = {
+    .is_label = false,
+    .data.instruction = instr3
+  };
+
+  err = line_list_add(list, line3);
   if (err)
     return err;
 
@@ -168,15 +211,19 @@ static int epilog(Asm *asmm, InstructionListNode *list, int stack_frame)
     .operand_amount = 0
   };
 
-  err = add_instruction(list, ret);
+  Line ret_line = {
+    .is_label = false,
+    .data.instruction = ret
+  };
+
+  err = line_list_add(list, ret_line);
   if (err)
     return err;
-
 
   return 0;
 }
 
-int start_generate_asm(Asm *asmm, Function *foo, InstructionListNode *list)
+int start_generate_asm(Asm *asmm, Function *foo, LineListNode *list)
 {
   Variables vars;
   init_variables(&vars);
@@ -206,7 +253,14 @@ int start_generate_asm(Asm *asmm, Function *foo, InstructionListNode *list)
 
   stack_frame = multiply_to_16(stack_frame);
 
-  printf("%s:\n", foo->signature->text);
+  //printf("%s:\n", foo->signature->text);
+  
+  Line label = {
+    .is_label = true,
+  };
+  sprintf(label.data.label.buffer, "%s", foo->signature->text);
+  
+  list->line = label;
 
   preamble(asmm, foo, list, stack_frame);
 
@@ -288,9 +342,60 @@ ControlGraphNode *collect_variables(Function *foo, Variables *vars, int *err)
   return node;
 }
 
-static int load_const(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list, RegisterStack *stack)
+
+static int load_bool_or_const(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack, bool isBool)
 {
   int reg = find_free_tmp_register(asmm);
+  if (reg == -1)
+  {
+    puts("Temp registers not allowed");
+    assert (0);
+  }
+
+  stack_push(stack, reg);
+  asmm->interger_register[reg] = true;
+
+  int value;
+  if (isBool)
+  {
+    if (strcmp(node->argument, "true") == 0)
+      value = 1;
+    else
+      value = 0;
+  }
+  else
+  {
+    value = atoi(node->argument);
+  }
+
+  Instruction instruction = {
+    .mnemonic = MN_ADDI,
+    .operand_amount = 3,
+    .first_operand = {
+      .operand_type = Reg,
+      .reg = reg,
+    },
+    .second_operand = {
+      .operand_type = Reg,
+      .reg = 0,
+    },
+    .third_operand = {
+      .operand_type = Value,
+      .value = value
+    }
+  };
+
+  Line line = {
+    .is_label = false,
+    .data.instruction = instruction
+  };
+
+  return line_list_add(list, line);
+}
+
+static int load_const(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack)
+{
+  /*int reg = find_free_tmp_register(asmm);
   if (reg == -1)
   {
     puts("Temp registers not allowed");
@@ -317,12 +422,62 @@ static int load_const(OpNode *node, Asm *asmm, Variables *vars, InstructionListN
     }
   };
 
-  add_instruction(list, instruction);
+  Line line = {
+    .is_label = false,
+    .data.instruction = instruction
+  };
 
-  return 0;
+  return line_list_add(list, line);*/
+
+  return load_bool_or_const(node, asmm, vars, list, stack, false);
 }
 
-static int load_variable(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list, RegisterStack *stack)
+static int load_bool(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack)
+{
+  /*int reg = find_free_tmp_register(asmm);
+  if (reg == -1)
+  {
+    puts("Temp registers not allowed");
+    assert (0);
+  }
+
+  stack_push(stack, reg);
+  asmm->interger_register[reg] = true;
+
+  int value;
+  if (strcmp(node->argument, "true") == 0)
+    value = 1;
+  else
+    value = 0;
+
+  Instruction instruction = {
+    .mnemonic = MN_ADDI,
+    .operand_amount = 3,
+    .first_operand = {
+      .operand_type = Reg,
+      .reg = reg,
+    },
+    .second_operand = {
+      .operand_type = Reg,
+      .reg = 0,
+    },
+    .third_operand = {
+      .operand_type = Value,
+      .value = value
+    }
+  };
+
+  Line line = {
+    .is_label = false,
+    .data.instruction = instruction
+  };
+
+  return line_list_add(list, line);*/
+
+  return load_bool_or_const(node, asmm, vars, list, stack, true);
+}
+
+static int load_variable(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack)
 {
   int free_reg = find_free_tmp_register(asmm);
 
@@ -362,17 +517,22 @@ static int load_variable(OpNode *node, Asm *asmm, Variables *vars, InstructionLi
     }
   };
 
-  add_instruction(list, instr_from_mem_to_reg);
+  Line line = {
+    .is_label = false,
+    .data.instruction = instr_from_mem_to_reg
+  };
 
-  return 0;
+  return line_list_add(list, line);
 }
 
-static int load_from(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list, RegisterStack *stack)
+static int load_from(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack)
 {
   if (node->type == CONST)
     return load_const(node, asmm, vars, list, stack);
   else if (node->type == Load)
     return load_variable(node, asmm, vars, list, stack);
+  else if(node->type == Bool)
+    return load_bool(node, asmm, vars, list, stack);
   else if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV)
   {
     OpNode *left = node->children[0];
@@ -415,19 +575,21 @@ static int load_from(OpNode *node, Asm *asmm, Variables *vars, InstructionListNo
         .reg = reg2,
       }
     };
+    Line line = {
+      .is_label = false,
+      .data.instruction = add
+    };
 
     asmm->interger_register[reg2] = false;
     stack_push(stack, reg1);
     
-    add_instruction(list, add);
-
-    return 0;
+    return line_list_add(list, line);
   }
 
   assert (0);
 }
 
-static int store_in_variable(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list, RegisterStack *stack)
+static int store_in_variable(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack)
 {
   if (node->type != Store)
     return -2;
@@ -447,14 +609,6 @@ static int store_in_variable(OpNode *node, Asm *asmm, Variables *vars, Instructi
   else if (type == LONG_TYPE)
     mnemonic = MN_SD;
 
-  /*
-  int reg = find_busy_tmp_register(asmm, 0);
-  if (reg == -1)
-  {
-    puts("Something wrong");
-    return -1;
-  }*/
-
   int reg = stack_pop(stack);
 
   Instruction instruction = {
@@ -472,16 +626,17 @@ static int store_in_variable(OpNode *node, Asm *asmm, Variables *vars, Instructi
       }
     }
   };
+  Line line = {
+    .is_label = false,
+    .data.instruction = instruction
+  };
 
   asmm->interger_register[reg] = false;
 
-  add_instruction(list, instruction);
-
-  return 0;
-  
+  return line_list_add(list, line);
 }
 
-static int generate(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list, RegisterStack *stack)
+static int generate(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack)
 {
   if (node->type == Assigment)
   {
@@ -503,7 +658,7 @@ static int generate(OpNode *node, Asm *asmm, Variables *vars, InstructionListNod
   assert (0);
 }
 
-int generate_asm(ControlGraphNode *node, Asm *assm, Variables *vars, InstructionListNode *list, RegisterStack *stack)
+int generate_asm(ControlGraphNode *node, Asm *assm, Variables *vars, LineListNode *list, RegisterStack *stack)
 {
   int err = generate(node->operation_node, assm, vars, list, stack);
   if (err)

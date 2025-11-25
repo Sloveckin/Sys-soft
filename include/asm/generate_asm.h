@@ -10,10 +10,10 @@
 #define VARIABLE_NOT_EXISTS -3
 #define TYPE_NOT_EQUALS -4
 
-int start_generate_asm(Asm *asmm, Function *foo, InstructionListNode *list);
+int start_generate_asm(Asm *asmm, Function *foo, LineListNode *list);
 
 ControlGraphNode *collect_variables(Function *foo, Variables *vars, int *e);
 
-int generate_asm(ControlGraphNode *node, Asm *assm, Variables *vars, InstructionListNode *list, RegisterStack *stack);
+int generate_asm(ControlGraphNode *node, Asm *assm, Variables *vars, LineListNode *list, RegisterStack *stack);
 
 #endif

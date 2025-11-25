@@ -89,7 +89,7 @@ int main(int argc, char **argv)
         };
 
         Asm asmm;
-        InstructionListNode *list = malloc(sizeof(InstructionListNode));;
+        LineListNode *list = malloc(sizeof(LineListNode));;
         init_asm(&asmm);
 
         int err = start_generate_asm(&asmm, &func, list);
