@@ -395,85 +395,11 @@ static int load_bool_or_const(OpNode *node, Asm *asmm, Variables *vars, LineList
 
 static int load_const(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack)
 {
-  /*int reg = find_free_tmp_register(asmm);
-  if (reg == -1)
-  {
-    puts("Temp registers not allowed");
-    assert (0);
-  }
-
-  stack_push(stack, reg);
-  asmm->interger_register[reg] = true;
-
-  Instruction instruction = {
-    .mnemonic = MN_ADDI,
-    .operand_amount = 3,
-    .first_operand = {
-      .operand_type = Reg,
-      .reg = reg,
-    },
-    .second_operand = {
-      .operand_type = Reg,
-      .reg = 0,
-    },
-    .third_operand = {
-      .operand_type = Value,
-      .value = atoi(node->argument)
-    }
-  };
-
-  Line line = {
-    .is_label = false,
-    .data.instruction = instruction
-  };
-
-  return line_list_add(list, line);*/
-
   return load_bool_or_const(node, asmm, vars, list, stack, false);
 }
 
 static int load_bool(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack)
 {
-  /*int reg = find_free_tmp_register(asmm);
-  if (reg == -1)
-  {
-    puts("Temp registers not allowed");
-    assert (0);
-  }
-
-  stack_push(stack, reg);
-  asmm->interger_register[reg] = true;
-
-  int value;
-  if (strcmp(node->argument, "true") == 0)
-    value = 1;
-  else
-    value = 0;
-
-  Instruction instruction = {
-    .mnemonic = MN_ADDI,
-    .operand_amount = 3,
-    .first_operand = {
-      .operand_type = Reg,
-      .reg = reg,
-    },
-    .second_operand = {
-      .operand_type = Reg,
-      .reg = 0,
-    },
-    .third_operand = {
-      .operand_type = Value,
-      .value = value
-    }
-  };
-
-  Line line = {
-    .is_label = false,
-    .data.instruction = instruction
-  };
-
-  return line_list_add(list, line);*/
-
   return load_bool_or_const(node, asmm, vars, list, stack, true);
 }
 
@@ -495,11 +421,15 @@ static int load_variable(OpNode *node, Asm *asmm, Variables *vars, LineListNode 
 
   Mnemonic mnemonic;
   if (type == INT_TYPE) 
-      mnemonic = MN_LW;
+    mnemonic = MN_LW;
   else if (type == BYTE_TYPE)
-      mnemonic = MN_LB;
+    mnemonic = MN_LB;
   else if (type == LONG_TYPE)
-      mnemonic = MN_LD;
+    mnemonic = MN_LD;
+  else if (type == BOOL_TYPE)
+    mnemonic = MN_LBU;
+  else
+    assert (0);
 
   Instruction instr_from_mem_to_reg = {
     .mnemonic = mnemonic,

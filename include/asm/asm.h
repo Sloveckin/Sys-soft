@@ -19,7 +19,8 @@ typedef enum
   MN_RET = 8,
   MN_SUB = 9,
   MN_MUL = 10,
-  MN_DIV = 11
+  MN_DIV = 11,
+  MN_LBU = 12,
 } Mnemonic;
 
 
