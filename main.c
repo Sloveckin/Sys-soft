@@ -91,11 +91,20 @@ int main(int argc, char **argv)
         Asm asmm;
         InstructionListNode *list = malloc(sizeof(InstructionListNode));;
         init_asm(&asmm);
-        start_generate_asm(&asmm, &func, list);
+
+        int err = start_generate_asm(&asmm, &func, list);
+        if (err)
+        {
+          free_instruction_list(list);
+          return err;
+        }
 
         print_list(list);
 
         write_into_file(&context, argv[j], &func);
+        
+        free_instruction_list(list);
+      
 
       }
       memset(functions, 0, sizeof(functions));

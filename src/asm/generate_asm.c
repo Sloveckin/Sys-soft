@@ -8,6 +8,7 @@
 #include "asm/asm.h"
 #include "asm/variable_set.h"
 #include "asm/instruction_list.h"
+#include "asm/register_stack.h"
 
 static size_t multiply_to_16(size_t amount)
 {
@@ -180,6 +181,10 @@ int start_generate_asm(Asm *asmm, Function *foo, InstructionListNode *list)
   Variables vars;
   init_variables(&vars);
 
+  RegisterStack stack;  
+  init_register_stack(&stack);
+
+
   int err = 0;
 
   ControlGraphNode *start_node = collect_variables(foo, &vars, &err);
@@ -203,7 +208,6 @@ int start_generate_asm(Asm *asmm, Function *foo, InstructionListNode *list)
 
   printf("%s:\n", foo->signature->text);
 
-
   preamble(asmm, foo, list, stack_frame);
 
   if (!start_node)
@@ -213,7 +217,7 @@ int start_generate_asm(Asm *asmm, Function *foo, InstructionListNode *list)
     return 0; 
   }
 
-  err = generate_asm(start_node, asmm, &vars, list);
+  err = generate_asm(start_node, asmm, &vars, list, &stack);
   if (err)
     return err;
 
@@ -284,7 +288,7 @@ ControlGraphNode *collect_variables(Function *foo, Variables *vars, int *err)
   return node;
 }
 
-static int load_const(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list)
+static int load_const(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list, RegisterStack *stack)
 {
   int reg = find_free_tmp_register(asmm);
   if (reg == -1)
@@ -292,6 +296,8 @@ static int load_const(OpNode *node, Asm *asmm, Variables *vars, InstructionListN
     puts("Temp registers not allowed");
     assert (0);
   }
+
+  stack_push(stack, reg);
   asmm->interger_register[reg] = true;
 
   Instruction instruction = {
@@ -316,14 +322,11 @@ static int load_const(OpNode *node, Asm *asmm, Variables *vars, InstructionListN
   return 0;
 }
 
-static int load_variable(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list)
+static int load_variable(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list, RegisterStack *stack)
 {
   int free_reg = find_free_tmp_register(asmm);
-  if (free_reg == -1)
-  {
-    puts("Temp register not allowed\n");
-    assert (0);
-  }
+
+  stack_push(stack, free_reg);
   asmm->interger_register[free_reg] = true;
 
   bool found = false;
@@ -364,38 +367,27 @@ static int load_variable(OpNode *node, Asm *asmm, Variables *vars, InstructionLi
   return 0;
 }
 
-static int load_from(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list)
+static int load_from(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list, RegisterStack *stack)
 {
   if (node->type == CONST)
-    return load_const(node, asmm, vars, list);
+    return load_const(node, asmm, vars, list, stack);
   else if (node->type == Load)
-    return load_variable(node, asmm, vars, list);
+    return load_variable(node, asmm, vars, list, stack);
   else if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV)
   {
     OpNode *left = node->children[0];
     OpNode *right = node->children[1];
 
-    int err = load_from(left, asmm, vars, list);
+    int err = load_from(left, asmm, vars, list, stack);
     if (err)
       return err;
 
-    err = load_from(right, asmm, vars, list);
+    err = load_from(right, asmm, vars, list, stack);
     if (err)
       return err;
 
-    int reg1 = find_busy_tmp_register(asmm, 0);
-    if (reg1 == -1)
-    {
-      puts("Something wrong");
-      assert (0);
-    }
-
-    int reg2 = find_busy_tmp_register(asmm, 1);
-    if (reg2 == -1)
-    {
-      puts("Something wrong");
-      assert (0);
-    }
+    int reg2 = stack_pop(stack);
+    int reg1 = stack_pop(stack);
 
     Mnemonic mnemonic;
     if (node->type == ADD)
@@ -409,18 +401,23 @@ static int load_from(OpNode *node, Asm *asmm, Variables *vars, InstructionListNo
 
     Instruction add = {
       .mnemonic = mnemonic,
-      .operand_amount = 2,
+      .operand_amount = 3,
       .first_operand = {
         .operand_type = Reg,
         .reg = reg1,
       },
       .second_operand = {
         .operand_type = Reg,
+        .reg = reg1,
+      },
+      .third_operand = {
+        .operand_type = Reg,
         .reg = reg2,
       }
     };
 
     asmm->interger_register[reg2] = false;
+    stack_push(stack, reg1);
     
     add_instruction(list, add);
 
@@ -430,7 +427,7 @@ static int load_from(OpNode *node, Asm *asmm, Variables *vars, InstructionListNo
   assert (0);
 }
 
-static int store_in_variable(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list)
+static int store_in_variable(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list, RegisterStack *stack)
 {
   if (node->type != Store)
     return -2;
@@ -450,12 +447,15 @@ static int store_in_variable(OpNode *node, Asm *asmm, Variables *vars, Instructi
   else if (type == LONG_TYPE)
     mnemonic = MN_SD;
 
+  /*
   int reg = find_busy_tmp_register(asmm, 0);
   if (reg == -1)
   {
     puts("Something wrong");
     return -1;
-  }
+  }*/
+
+  int reg = stack_pop(stack);
 
   Instruction instruction = {
     .mnemonic = mnemonic,
@@ -481,18 +481,18 @@ static int store_in_variable(OpNode *node, Asm *asmm, Variables *vars, Instructi
   
 }
 
-static int generate(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list)
+static int generate(OpNode *node, Asm *asmm, Variables *vars, InstructionListNode *list, RegisterStack *stack)
 {
   if (node->type == Assigment)
   {
     OpNode *left = node->children[0];
     OpNode *right = node->children[1];
 
-    int err = load_from(right, asmm, vars, list);
+    int err = load_from(right, asmm, vars, list, stack);
     if (err)
       return err;
 
-    err = store_in_variable(left, asmm, vars, list);
+    err = store_in_variable(left, asmm, vars, list, stack);
     if (err)
       return err;
 
@@ -503,14 +503,14 @@ static int generate(OpNode *node, Asm *asmm, Variables *vars, InstructionListNod
   assert (0);
 }
 
-int generate_asm(ControlGraphNode *node, Asm *assm, Variables *vars, InstructionListNode *list)
+int generate_asm(ControlGraphNode *node, Asm *assm, Variables *vars, InstructionListNode *list, RegisterStack *stack)
 {
-  int err = generate(node->operation_node, assm, vars, list);
+  int err = generate(node->operation_node, assm, vars, list, stack);
   if (err)
     return err;
 
   if (!node->def)
     return 0;
 
-  return generate_asm(node->def, assm, vars, list);
+  return generate_asm(node->def, assm, vars, list, stack);
 }

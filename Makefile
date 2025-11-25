@@ -20,6 +20,7 @@ main: \
 	src/asm/generate_asm.c \
 	src/asm/variable_set.c \
 	src/asm/instruction_list.c \
+	src/asm/register_stack.c \
 	src/type.c \
 	src/control_graph/context.c \
 	src/operation_tree.c \

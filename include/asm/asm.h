@@ -104,5 +104,6 @@ void instruction_to_str(Instruction *instruction);
 
 void operand_to_str(Operand *operand, char *buffer);
 
+void print_tmp(Asm *asmm);
 
 #endif
