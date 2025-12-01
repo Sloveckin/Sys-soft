@@ -49,7 +49,12 @@ const char *const mnemonic_to_string[] = {
   "sub",
   "mul",
   "divw",
-  "lbu"
+  "lbu",
+  "mv",
+  "j",
+  "beq",
+  "c.and",
+  "c.or",
 };
 
 

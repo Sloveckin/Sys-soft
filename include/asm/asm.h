@@ -21,6 +21,11 @@ typedef enum
   MN_MUL = 10,
   MN_DIV = 11,
   MN_LBU = 12,
+  MN_MV = 13,
+  MN_J = 14,
+  MN_BEQ = 15,
+  MN_C_AND = 16,
+  MN_C_OR = 17,
 } Mnemonic;
 
 
@@ -70,7 +75,8 @@ typedef enum
 {
   Reg,
   Value,
-  OnStack
+  OnStack,
+  OP_Label
 } OperandType;
 
 typedef struct
@@ -80,6 +86,7 @@ typedef struct
   Register reg;
   int value;
   Stack stack;
+  char lable[LABEL_LENGTH];
 } Operand;
 
 typedef struct

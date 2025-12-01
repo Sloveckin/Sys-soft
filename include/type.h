@@ -7,17 +7,19 @@
 
 typedef enum
 {
-  VOID_TYPE,
-  INT_TYPE,
-  UINT_TYPE,
-  LONG_TYPE,
-  ULONG_TYPE,
-  CHAR_TYPE,
-  BYTE_TYPE,
-  STRING_TYPE,
-  BOOL_TYPE,
-  CUSTOM_TYPE
+  VOID_TYPE = 0,
+  INT_TYPE = 1,
+  UINT_TYPE = 2,
+  LONG_TYPE = 3,
+  ULONG_TYPE = 4,
+  CHAR_TYPE = 5,
+  BYTE_TYPE = 6,
+  STRING_TYPE = 7,
+  BOOL_TYPE = 8,
+  CUSTOM_TYPE = 9
 } ProgramType;
+
+extern const char *const ProgramType_to_str[];
 
 ProgramType typeRefTypeFromOpType(OpNodeType type);
 

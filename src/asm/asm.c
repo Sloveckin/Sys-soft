@@ -141,9 +141,13 @@ void operand_to_str(Operand *operand, char *buffer)
   {
     sprintf(buffer, "%d", operand->value);
   }
-  else 
+  else if (operand->operand_type == OnStack)
   {
     sprintf(buffer, "%d(%s)", operand->stack.offset, register_to_string[operand->stack.reg]);
+  }
+  else 
+  {
+    sprintf(buffer, "%s", operand->lable);
   }
 
 }

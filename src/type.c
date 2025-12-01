@@ -31,3 +31,16 @@ size_t byte_amount(ProgramType type)
 
   assert (0);
 }
+
+const char *const ProgramType_to_str[] = {
+  "void",
+  "int",
+  "uint",
+  "long",
+  "ulong",
+  "char",
+  "byte",
+  "string",
+  "bool",
+  "custom"
+};

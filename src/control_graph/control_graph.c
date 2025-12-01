@@ -51,12 +51,14 @@ static ControlGraphNode *create_control_node(Contex *context)
   ControlGraphNode *node = malloc(sizeof(ControlGraphNode));
   node->id = -1;
   node->visited = false;
+  node->parent_amount = 0;
   node->connect_to_end = false;
   node->end = NULL;
   node->def = NULL;
   node->cond = NULL;
   node->operation_node = NULL;
   node->text = NULL;
+  node->generate_asm = false;
 
   context_add_node(context, node);
 
@@ -71,6 +73,8 @@ static ControlGraphNode *create_empty_node(Contex *context)
   sprintf(node->text, "%s", "Empty");
 
   node->id = -1;
+  node->parent_amount = 0;
+  node->parent_accum = 0;
   node->visited = false;
   node->connect_to_end = false;
   node->end = NULL;
@@ -134,7 +138,6 @@ static ControlGraphNode *if_condition(Contex *context, struct Node *node)
 
     ControlGraphNode *end = create_empty_node(context);
 
-
     ControlGraphNode *body_last = find_last_cgn_node(body);
     if (!body_last)
       body_last = create_empty_node(context);
@@ -156,6 +159,8 @@ static ControlGraphNode *if_condition(Contex *context, struct Node *node)
       cond->cond = end;
 
     body_last->def = end;
+
+    end->parent_amount = 2;
 
     return cond;
 }
@@ -342,6 +347,9 @@ ControlGraphNode *foo(Contex *context, struct Node *node)
                                                    || strcmp(node->type, "Hex") == 0 || strcmp(node->type, "Bits") == 0)
   {
     ControlGraphNode *cgn = create_control_node(context);
+
+    cgn->operation_node = create_operation_tree_node(node);
+
     cgn->text = get_text(node);
     return cgn;
   }

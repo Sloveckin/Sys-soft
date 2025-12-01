@@ -9,7 +9,7 @@ void init_variables(Variables *vars)
   vars->capacity = 5;
   vars->size = 0;
 
-  vars->variables = malloc(sizeof(Variable) * vars->capacity);
+  vars->variables = malloc(sizeof(Variable*) * vars->capacity);
 }
 
 static void resize(Variables *vars)

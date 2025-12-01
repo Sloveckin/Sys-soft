@@ -32,11 +32,16 @@ typedef struct ControlGraphNode
   size_t id;
   char *text;
 
+  size_t parent_amount;
+  size_t parent_accum;
+
   bool connect_to_end; 
   struct ControlGraphNode *end;
 
   struct ControlGraphNode *def;
   struct ControlGraphNode *cond;
+
+  bool generate_asm;
 
   OpNode *operation_node;
 } ControlGraphNode;

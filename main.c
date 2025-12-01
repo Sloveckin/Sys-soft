@@ -1,5 +1,6 @@
 #include "control_graph/converter_to_dgml.h"
 #include "function.h"
+#include "include/asm/error_list.h"
 #include "include/asm/generate_asm.h"
 #include "include/asm/instruction_list.h"
 #include "parser.tab.h"
@@ -92,20 +93,29 @@ int main(int argc, char **argv)
         LineListNode *list = malloc(sizeof(LineListNode));;
         init_asm(&asmm);
 
-        int err = start_generate_asm(&asmm, &func, list);
-        if (err)
+        ErrorList err_list;
+        error_list_init(&err_list);
+
+        start_generate_asm(&asmm, &func, list, &err_list);
+        if (err_list.size != 0)
         {
+
+          for (size_t i = 0; i < err_list.size; i++)
+          {
+            puts(err_list.data[i]->message);
+          }
+
+          error_list_free(&err_list);
           free_instruction_list(list);
-          return err;
+          return -1;
         }
 
         print_list(list);
 
         write_into_file(&context, argv[j], &func);
         
+        error_list_free(&err_list);
         free_instruction_list(list);
-      
-
       }
       memset(functions, 0, sizeof(functions));
       yylex_destroy();
