@@ -2,7 +2,9 @@
 #include "function.h"
 #include "include/asm/error_list.h"
 #include "include/asm/generate_asm.h"
+#include "include/asm/generator_context.h"
 #include "include/asm/instruction_list.h"
+#include "include/asm/label_generator.h"
 #include "parser.tab.h"
 #include "yylex.h"
 #include "node.h"
@@ -96,7 +98,18 @@ int main(int argc, char **argv)
         ErrorList err_list;
         error_list_init(&err_list);
 
-        start_generate_asm(&asmm, &func, list, &err_list);
+        LabelGenerator label_generator;
+        init_label_generator(&label_generator);
+
+        GeneratorContext generator_context = {
+          .asmm = &asmm,
+          .error_list = &err_list,
+          .line_list = list,
+          .label_gen = &label_generator,
+        };
+
+        start_generate_asm(&generator_context, &func);
+
         if (err_list.size != 0)
         {
 

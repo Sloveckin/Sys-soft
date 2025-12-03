@@ -22,6 +22,7 @@ main: \
 	src/asm/instruction_list.c \
 	src/asm/register_stack.c \
 	src/asm/error_list.c \
+	src/asm/label_generator.c \
 	src/type.c \
 	src/control_graph/context.c \
 	src/operation_tree.c \

@@ -223,7 +223,7 @@ static int epilog(Asm *asmm, LineListNode *list, int stack_frame)
   return 0;
 }
 
-int start_generate_asm(Asm *asmm, Function *foo, LineListNode *list, ErrorList *err_list)
+int start_generate_asm(GeneratorContext *gen_context, Function *foo)
 {
   Variables vars;
   init_variables(&vars);
@@ -231,10 +231,12 @@ int start_generate_asm(Asm *asmm, Function *foo, LineListNode *list, ErrorList *
   RegisterStack stack;  
   init_register_stack(&stack);
 
+  gen_context->register_stack = &stack;
+  gen_context->vars = &vars;
 
   int err = 0;
 
-  ControlGraphNode *start_node = collect_variables(foo, &vars, &err, err_list);
+  ControlGraphNode *start_node = collect_variables(foo, &vars, &err, gen_context->error_list);
   if (err)
   {
     free_variables(&vars);
@@ -242,8 +244,8 @@ int start_generate_asm(Asm *asmm, Function *foo, LineListNode *list, ErrorList *
   }
 
   size_t stack_frame = 16;
-  asmm->integer_on_stack[ra] = 8;
-  asmm->integer_on_stack[s0] = 0;
+  gen_context->asmm->integer_on_stack[ra] = 8;
+  gen_context->asmm->integer_on_stack[s0] = 0;
 
   for (size_t i = 0; i < vars.size; i++)
   {
@@ -259,22 +261,22 @@ int start_generate_asm(Asm *asmm, Function *foo, LineListNode *list, ErrorList *
   };
   sprintf(label.data.label.buffer, "%s", foo->signature->text);
   
-  list->line = label;
+  gen_context->line_list->line = label;
 
-  preamble(asmm, foo, list, stack_frame);
+  preamble(gen_context->asmm, foo, gen_context->line_list, stack_frame);
 
   if (!start_node)
   {
     free_variables(&vars);
-    epilog(asmm, list, stack_frame); 
+    epilog(gen_context->asmm, gen_context->line_list, stack_frame); 
     return 0; 
   }
 
-  err = generate_asm(start_node, asmm, &vars, list, &stack, err_list);
+  err = generate_asm(start_node, gen_context);
   if (err)
     return err;
 
-  epilog(asmm, list, stack_frame); 
+  epilog(gen_context->asmm, gen_context->line_list, stack_frame); 
 
   return 0;
 }
@@ -356,17 +358,17 @@ ControlGraphNode *collect_variables(Function *foo, Variables *vars, int *err, Er
 }
 
 
-static int load_bool_or_const(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack, bool isBool, ErrorList *err_list)
+static int load_bool_or_const(OpNode *node, GeneratorContext *ctx, bool isBool)
 {
-  int reg = find_free_tmp_register(asmm);
+  int reg = find_free_tmp_register(ctx->asmm);
   if (reg == -1)
   {
     puts("Temp registers not allowed");
     assert (0);
   }
 
-  stack_push(stack, reg);
-  asmm->interger_register[reg] = true;
+  stack_push(ctx->register_stack, reg);
+  ctx->asmm->interger_register[reg] = true;
 
   int value;
   if (isBool)
@@ -403,28 +405,28 @@ static int load_bool_or_const(OpNode *node, Asm *asmm, Variables *vars, LineList
     .data.instruction = instruction
   };
 
-  return line_list_add(list, line);
+  return line_list_add(ctx->line_list, line);
 }
 
-static int load_const(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack, ErrorList *err_list)
+static int load_const(OpNode *node, GeneratorContext *ctx)
 {
-  return load_bool_or_const(node, asmm, vars, list, stack, false, err_list);
+  return load_bool_or_const(node, ctx, false);
 }
 
-static int load_bool(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack, ErrorList *err_list)
+static int load_bool(OpNode *node, GeneratorContext *ctx)
 {
-  return load_bool_or_const(node, asmm, vars, list, stack, true, err_list);
+  return load_bool_or_const(node, ctx, true);
 }
 
-static int load_variable(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack, ErrorList *err_list)
+static int load_variable(OpNode *node, GeneratorContext *ctx)
 {
-  int free_reg = find_free_tmp_register(asmm);
+  int free_reg = find_free_tmp_register(ctx->asmm);
 
-  stack_push(stack, free_reg);
-  asmm->interger_register[free_reg] = true;
+  stack_push(ctx->register_stack, free_reg);
+  ctx->asmm->interger_register[free_reg] = true;
 
   bool found = false;
-  ProgramType type = find_program_type(vars, node->argument, &found);
+  ProgramType type = find_program_type(ctx->vars, node->argument, &found);
   if (!found)
   {
     Error *no_such_variable = malloc(sizeof(Error));
@@ -434,12 +436,12 @@ static int load_variable(OpNode *node, Asm *asmm, Variables *vars, LineListNode 
     no_such_variable->error_type = ERR_NO_SUCH_VARIABLE;
     sprintf(no_such_variable->message, "No such variable: %s", node->argument);
 
-    error_list_add(err_list, no_such_variable);
+    error_list_add(ctx->error_list, no_such_variable);
 
     return 0;
   }
 
-  int offset = find_offset(vars, node->argument, &found);
+  int offset = find_offset(ctx->vars, node->argument, &found);
 
   Mnemonic mnemonic;
   if (type == INT_TYPE) 
@@ -474,27 +476,27 @@ static int load_variable(OpNode *node, Asm *asmm, Variables *vars, LineListNode 
     .data.instruction = instr_from_mem_to_reg
   };
 
-  return line_list_add(list, line);
+  return line_list_add(ctx->line_list, line);
 }
 
 
-static int load_from(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack, ErrorList *err_list);
+static int load_from(OpNode *node, GeneratorContext *ctx);
 
-static int binary_operation(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack, ErrorList *err_list)
+static int binary_operation(OpNode *node, GeneratorContext *ctx)
 {
     OpNode *left = node->children[0];
     OpNode *right = node->children[1];
 
-    int err = load_from(left, asmm, vars, list, stack, err_list);
+    int err = load_from(left, ctx);
     if (err)
       return err;
 
-    err = load_from(right, asmm, vars, list, stack, err_list);
+    err = load_from(right, ctx);
     if (err)
       return err;
 
-    int reg2 = stack_pop(stack);
-    int reg1 = stack_pop(stack);
+    int reg2 = stack_pop(ctx->register_stack);
+    int reg1 = stack_pop(ctx->register_stack);
 
     Mnemonic mnemonic;
     if (node->type == ADD)
@@ -531,34 +533,34 @@ static int binary_operation(OpNode *node, Asm *asmm, Variables *vars, LineListNo
       .data.instruction = add
     };
 
-    asmm->interger_register[reg2] = false;
-    stack_push(stack, reg1);
+    ctx->asmm->interger_register[reg2] = false;
+    stack_push(ctx->register_stack, reg1);
     
-    return line_list_add(list, line);
+    return line_list_add(ctx->line_list, line);
 }
 
-static int load_from(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack, ErrorList *err_list)
+static int load_from(OpNode *node, GeneratorContext *ctx)
 {
   if (node->type == CONST)
-    return load_const(node, asmm, vars, list, stack, err_list);
+    return load_const(node, ctx);
   else if (node->type == Load)
-    return load_variable(node, asmm, vars, list, stack, err_list);
+    return load_variable(node, ctx);
   else if(node->type == Bool)
-    return load_bool(node, asmm, vars, list, stack, err_list);
+    return load_bool(node, ctx);
   else if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV || node->type == And || node->type == Or)
-    return binary_operation(node, asmm, vars, list, stack, err_list);
+    return binary_operation(node, ctx);
   
 
   assert (0);
 }
 
-static int store_in_variable(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack, ErrorList *err_list)
+static int store_in_variable(OpNode *node, GeneratorContext *ctx)
 {
   if (node->type != Store)
     return -2;
 
   bool found = false;
-  ProgramType type = find_program_type(vars, node->argument, &found);
+  ProgramType type = find_program_type(ctx->vars, node->argument, &found);
   if (!found)
   {
     Error *no_such_variable = malloc(sizeof(Error));
@@ -568,12 +570,12 @@ static int store_in_variable(OpNode *node, Asm *asmm, Variables *vars, LineListN
     no_such_variable->error_type = ERR_NO_SUCH_VARIABLE;
     sprintf(no_such_variable->message, "No such variable: %s", node->argument);
 
-    error_list_add(err_list, no_such_variable);
+    error_list_add(ctx->error_list, no_such_variable);
 
     return 0;
   }
 
-  int offset = find_offset(vars, node->argument, &found);
+  int offset = find_offset(ctx->vars, node->argument, &found);
 
   Mnemonic mnemonic;
   if (type == INT_TYPE) 
@@ -583,7 +585,7 @@ static int store_in_variable(OpNode *node, Asm *asmm, Variables *vars, LineListN
   else if (type == LONG_TYPE)
     mnemonic = MN_SD;
 
-  int reg = stack_pop(stack);
+  int reg = stack_pop(ctx->register_stack);
 
   Instruction instruction = {
     .mnemonic = mnemonic,
@@ -605,30 +607,30 @@ static int store_in_variable(OpNode *node, Asm *asmm, Variables *vars, LineListN
     .data.instruction = instruction
   };
 
-  asmm->interger_register[reg] = false;
+  ctx->asmm->interger_register[reg] = false;
 
-  return line_list_add(list, line);
+  return line_list_add(ctx->line_list, line);
 }
 
-static int assigment(OpNode *node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack, ErrorList *err_list)
+static int assigment(OpNode *node, GeneratorContext *ctx)
 {
     OpNode *left = node->children[0];
     OpNode *right = node->children[1];
 
-    int err = load_from(right, asmm, vars, list, stack, err_list);
+    int err = load_from(right, ctx);
     if (err)
       return err;
 
-    err = store_in_variable(left, asmm, vars, list, stack, err_list);
+    err = store_in_variable(left, ctx);
     if (err)
       return err;
     
     bool found = false;
-    ProgramType left_type = find_program_type(vars, left->argument, &found);
+    ProgramType left_type = find_program_type(ctx->vars, left->argument, &found);
     if (!found)
       return 0;
 
-    ProgramType right_type = find_program_type(vars, right->argument, &found);
+    ProgramType right_type = find_program_type(ctx->vars, right->argument, &found);
     if (!found)
       return 0;
 
@@ -644,22 +646,17 @@ static int assigment(OpNode *node, Asm *asmm, Variables *vars, LineListNode *lis
       type_not_equals->data.not_expeted_type.expected = left_type;
       type_not_equals->data.not_expeted_type.was = right_type;
 
-      error_list_add(err_list, type_not_equals);
+      error_list_add(ctx->error_list, type_not_equals);
     }
 
    return 0;
 }
 
-int generate_asm(ControlGraphNode *cgn_node, Asm *asmm, Variables *vars, LineListNode *list, RegisterStack *stack, ErrorList *err_list)
+int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
 {
-  /*int err = generate(node->operation_node, assm, vars, list, stack, err_list);
-  if (err)
-    return err;
 
-  if (!node->def)
+  if (cgn_node == NULL)
     return 0;
-
-  return generate_asm(node->def, assm, vars, list, stack, err_list);*/
 
   if (cgn_node->generate_asm)
     return 0;
@@ -679,28 +676,30 @@ int generate_asm(ControlGraphNode *cgn_node, Asm *asmm, Variables *vars, LineLis
         .operand_amount = 1,
         .first_operand = {
           .operand_type = OP_Label,
-          .lable = "Block3"
+          //.lable = "after_block"
         }
       }
     };
+    sprintf(jump_to_end_block.data.instruction.first_operand.lable, "%s", ctx->label_gen->after_block);
 
-    int err = line_list_add(list, jump_to_end_block);
+    int err = line_list_add(ctx->line_list, jump_to_end_block);
     if (err)
       return err;
 
 
     Line with_label = {
       .is_label = true,
-      .data.label = "Block3"
+      //.data.label = "after_block"
     };
+    sprintf(with_label.data.label.buffer, "%s", ctx->label_gen->after_block);
 
-    err = line_list_add(list, with_label);
+    err = line_list_add(ctx->line_list, with_label);
     if (err)
       return err;
 
     cgn_node->generate_asm = true;
 
-    err = generate_asm(cgn_node->def, asmm, vars, list, stack, err_list);
+    err = generate_asm(cgn_node->def, ctx);
     if (err)
       return err;
 
@@ -719,25 +718,27 @@ int generate_asm(ControlGraphNode *cgn_node, Asm *asmm, Variables *vars, LineLis
 
     if (node->type == Assigment)
     {
-      int err = assigment(node, asmm, vars, list, stack, err_list);
+      int err = assigment(node, ctx);
       if (err)
         return err;
     }
 
     if (cgn_node->def != NULL)
-      return generate_asm(cgn_node->def, asmm, vars, list, stack, err_list);
+      return generate_asm(cgn_node->def, ctx);
 
     return 0;
 
   }
 
-  if (node->type == Bool)
+  if (node->type == Bool || node->type == And || node->type == Or || node->type == Assigment)
   {
-    int err = load_from(node, asmm, vars, list, stack, err_list);
+    update_if_labels(ctx->label_gen);
+
+    int err = load_from(node, ctx);
     if (err)
       return err;
 
-    int reg_for_one = find_free_tmp_register(asmm);    
+    int reg_for_one = find_free_tmp_register(ctx->asmm);    
     if (reg_for_one == -1)
     {
       puts("Not allowed tmp register");
@@ -760,11 +761,11 @@ int generate_asm(ControlGraphNode *cgn_node, Asm *asmm, Variables *vars, LineLis
       }
     };
 
-    err = line_list_add(list, load_one);
+    err = line_list_add(ctx->line_list, load_one);
     if (err)
       return err;
 
-    int reg_with_cond = stack_pop(stack);
+    int reg_with_cond = stack_pop(ctx->register_stack);
 
     Line beq = {
       .is_label = false,
@@ -781,12 +782,12 @@ int generate_asm(ControlGraphNode *cgn_node, Asm *asmm, Variables *vars, LineLis
         },
         .third_operand = {
           .operand_type = OP_Label,
-          .lable = "block1",
         }
       }
     };
+    sprintf(beq.data.instruction.third_operand.lable, "%s", ctx->label_gen->true_block); 
 
-    err = line_list_add(list, beq);
+    err = line_list_add(ctx->line_list, beq);
     if (err)
       return err;
 
@@ -797,26 +798,28 @@ int generate_asm(ControlGraphNode *cgn_node, Asm *asmm, Variables *vars, LineLis
         .operand_amount = 1,
         .first_operand = {
           .operand_type = OP_Label,
-          .lable = "block2"
+          //.lable = "false_block"
         }
       }
     };
+    sprintf(j_to_false_block.data.instruction.first_operand.lable, "%s", ctx->label_gen->false_block); 
 
-    err = line_list_add(list, j_to_false_block);
+    err = line_list_add(ctx->line_list, j_to_false_block);
     if (err)
       return err;
 
     Line label_block_one = {
       .is_label = true,
-      .data.label = "block1"
+      //.data.label = "true_block"
     };
+    sprintf(label_block_one.data.label.buffer, "%s", ctx->label_gen->true_block);
 
-    err = line_list_add(list, label_block_one);
+    err = line_list_add(ctx->line_list, label_block_one);
     if (err)
       return err;
 
     // Generate block condition 
-    err = generate_asm(cgn_node->cond, asmm, vars, list, stack, err_list);
+    err = generate_asm(cgn_node->cond, ctx);
     if (err)
       return err;
     
@@ -827,26 +830,28 @@ int generate_asm(ControlGraphNode *cgn_node, Asm *asmm, Variables *vars, LineLis
         .operand_amount = 1,
         .first_operand = {
           .operand_type = OP_Label,
-          .lable = "Block3"
+          //.lable = "after_block"
         }
       }
     };
+    sprintf(jump_to_end_block.data.instruction.first_operand.lable, "%s", ctx->label_gen->after_block);
 
-    err = line_list_add(list, jump_to_end_block);
+    err = line_list_add(ctx->line_list, jump_to_end_block);
     if (err)
       return err;
 
     Line label_block_false = {
       .is_label = true,
-      .data.label = "block2"
+      //.data.label.buffer = "false_block"
     };
+    sprintf(label_block_false.data.label.buffer, "%s", ctx->label_gen->false_block);
 
-    err = line_list_add(list, label_block_false);
+    err = line_list_add(ctx->line_list, label_block_false);
     if (err)
       return err;
     
     // Generate block defualt
-    err = generate_asm(cgn_node->def, asmm, vars, list, stack, err_list);
+    err = generate_asm(cgn_node->def, ctx);
     if (err)
       return err;
     

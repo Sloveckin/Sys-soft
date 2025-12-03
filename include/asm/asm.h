@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define LABEL_LENGTH 128
+#define LABEL_LENGTH 256
 
 typedef enum
 {
