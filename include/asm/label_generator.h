@@ -11,11 +11,13 @@ typedef struct LabelGenerator
   char true_block[MAX_LABEL_NAME_LENGTH];
   char false_block[MAX_LABEL_NAME_LENGTH];
   char after_block[MAX_LABEL_NAME_LENGTH];
+  char cond_block[MAX_LABEL_NAME_LENGTH];
 } LabelGenerator;
 
 void init_label_generator(LabelGenerator *gen);
 
-void update_if_labels(LabelGenerator *gen);
+void update_labels(LabelGenerator *gen);
+
 
 
 #endif

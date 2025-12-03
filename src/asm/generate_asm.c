@@ -725,15 +725,15 @@ static Line jump_to_false_block(GeneratorContext *ctx)
 
 int cycle(ControlGraphNode *cgn_node, GeneratorContext *ctx)
 {
-  update_if_labels(ctx->label_gen);
+  update_labels(ctx->label_gen);
   OpNode *node = cgn_node->operation_node;
 
   cgn_node->generate_asm = true;
 
   Line block_cond = {
     .is_label = true,
-    .data.label.buffer = "block_cond"
   };
+  sprintf(block_cond.data.label.buffer, "%s", ctx->label_gen->cond_block);
 
   int err = line_list_add(ctx->line_list, block_cond);
   if (err)
@@ -786,7 +786,7 @@ int cycle(ControlGraphNode *cgn_node, GeneratorContext *ctx)
       }
     }
   };
-  sprintf(j_to_cond_block.data.instruction.first_operand.lable, "%s", "block_cond");
+  sprintf(j_to_cond_block.data.instruction.first_operand.lable, "%s", ctx->label_gen->cond_block);
 
   err = line_list_add(ctx->line_list, j_to_cond_block);
   if (err)
@@ -895,7 +895,7 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
 
   if (node->type == Bool || node->type == And || node->type == Or || node->type == Assigment)
   {
-    update_if_labels(ctx->label_gen);
+    update_labels(ctx->label_gen);
 
     int err = load_from(node, ctx);
     if (err)
