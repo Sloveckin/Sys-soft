@@ -188,6 +188,8 @@ static ControlGraphNode *while_cycle(Contex *context, struct Node* node)
 
   last_stats->def = cond;
 
+  cond->parent_amount = 2;
+
   return cond;
 }
 

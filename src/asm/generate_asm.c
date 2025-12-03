@@ -652,6 +652,162 @@ static int assigment(OpNode *node, GeneratorContext *ctx)
    return 0;
 }
 
+static Line create_true(GeneratorContext *ctx, int *reg_for_one)
+{
+   int reg = find_free_tmp_register(ctx->asmm);    
+   if (reg == -1)
+   {
+     puts("Not allowed tmp register");
+     assert (0);
+   }
+
+  Line load_one = {
+    .is_label = false,
+    .data.instruction = {
+      .mnemonic = MN_MV,
+      .operand_amount = 2,
+      .first_operand = {
+        .operand_type = Reg,
+        .reg = reg,
+      },
+      .second_operand = {
+        .operand_type = Value,
+        .value = 1
+      }
+     }
+  };
+
+  *reg_for_one = reg;
+  return load_one;
+}
+
+static Line create_beq(int reg1, int reg2, GeneratorContext *ctx)
+{
+  Line beq = {
+    .is_label = false,
+    .data.instruction = {
+    .mnemonic = MN_BEQ,
+      .operand_amount = 3,
+      .first_operand = {
+        .operand_type = Reg,
+        .reg = reg1,
+      },
+      .second_operand = {
+        .operand_type = Reg,
+        .reg = reg2 
+      },
+      .third_operand = {
+        .operand_type = OP_Label,
+      }
+      }
+    };
+    sprintf(beq.data.instruction.third_operand.lable, "%s", ctx->label_gen->true_block); 
+
+  return beq;
+}
+
+static Line jump_to_false_block(GeneratorContext *ctx)
+{
+  Line j_to_false_block = {
+    .is_label = false,
+    .data.instruction = {
+      .mnemonic = MN_J,
+      .operand_amount = 1,
+      .first_operand = {
+        .operand_type = OP_Label,
+        //.lable = "false_block"
+      }
+    }
+  };
+  sprintf(j_to_false_block.data.instruction.first_operand.lable, "%s", ctx->label_gen->false_block);
+  return j_to_false_block;
+}
+
+int cycle(ControlGraphNode *cgn_node, GeneratorContext *ctx)
+{
+  update_if_labels(ctx->label_gen);
+  OpNode *node = cgn_node->operation_node;
+
+  cgn_node->generate_asm = true;
+
+  Line block_cond = {
+    .is_label = true,
+    .data.label.buffer = "block_cond"
+  };
+
+  int err = line_list_add(ctx->line_list, block_cond);
+  if (err)
+    return 0;
+
+  err = load_from(node, ctx);
+  if (err)
+    return err;
+
+  int reg_for_one = 0;
+  Line load_one = create_true(ctx, &reg_for_one);
+
+  err = line_list_add(ctx->line_list, load_one);
+  if (err)
+    return err;
+
+  int reg_with_cond = stack_pop(ctx->register_stack);
+  Line beq = create_beq(reg_for_one, reg_with_cond, ctx);
+
+  err = line_list_add(ctx->line_list, beq);
+  if (err)
+    return err;
+
+  Line j_to_false_block = jump_to_false_block(ctx);
+  
+  err = line_list_add(ctx->line_list, j_to_false_block);
+  if (err)
+    return err;
+
+  Line block_true = {
+    .is_label = true,
+  };
+  sprintf(block_true.data.label.buffer, "%s", ctx->label_gen->true_block);
+
+  err = line_list_add(ctx->line_list, block_true);
+  if (err)
+    return err;
+
+  err = generate_asm(cgn_node->cond, ctx);
+  if (err)
+    return err;
+
+  Line j_to_cond_block = {
+    .is_label = false,
+    .data.instruction = {
+      .mnemonic = MN_J,
+      .operand_amount = 1,
+      .first_operand = {
+        .operand_type = OP_Label
+      }
+    }
+  };
+  sprintf(j_to_cond_block.data.instruction.first_operand.lable, "%s", "block_cond");
+
+  err = line_list_add(ctx->line_list, j_to_cond_block);
+  if (err)
+    return err;
+
+  Line block_false = {
+    .is_label = true,
+  };
+  sprintf(block_false.data.label.buffer, "%s", ctx->label_gen->false_block);
+
+  err = line_list_add(ctx->line_list, block_false);
+  if (err)
+    return err;
+  
+  err = generate_asm(cgn_node->def, ctx);
+  if (err)
+    return err;
+
+  return 0;
+}
+
 int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
 {
 
@@ -664,6 +820,13 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
   if (cgn_node->parent_amount == 2)
   {
     
+    if (cgn_node->parent_amount == 2 && cgn_node->cond != NULL)
+    {
+      return cycle(cgn_node, ctx);
+    }
+
+
+    // Create after if block
     cgn_node->parent_accum++;
 
     if (cgn_node->parent_accum != 2)
@@ -714,7 +877,7 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
   {
 
     if (node == NULL)
-      return 0;
+      return generate_asm(cgn_node->def, ctx);
 
     if (node->type == Assigment)
     {
@@ -738,72 +901,21 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
     if (err)
       return err;
 
-    int reg_for_one = find_free_tmp_register(ctx->asmm);    
-    if (reg_for_one == -1)
-    {
-      puts("Not allowed tmp register");
-      assert (0);
-    }
-
-    Line load_one = {
-      .is_label = false,
-      .data.instruction = {
-        .mnemonic = MN_MV,
-        .operand_amount = 2,
-        .first_operand = {
-          .operand_type = Reg,
-          .reg = reg_for_one,
-        },
-        .second_operand = {
-          .operand_type = Value,
-          .value = 1
-        }
-      }
-    };
+    int reg_for_one = 0;
+    Line load_one = create_true(ctx, &reg_for_one);
 
     err = line_list_add(ctx->line_list, load_one);
     if (err)
       return err;
 
     int reg_with_cond = stack_pop(ctx->register_stack);
-
-    Line beq = {
-      .is_label = false,
-      .data.instruction = {
-        .mnemonic = MN_BEQ,
-        .operand_amount = 3,
-        .first_operand = {
-          .operand_type = Reg,
-          .reg = reg_for_one,
-        },
-        .second_operand = {
-          .operand_type = Reg,
-          .reg = reg_with_cond
-        },
-        .third_operand = {
-          .operand_type = OP_Label,
-        }
-      }
-    };
-    sprintf(beq.data.instruction.third_operand.lable, "%s", ctx->label_gen->true_block); 
+    Line beq = create_beq(reg_for_one, reg_with_cond, ctx);
 
     err = line_list_add(ctx->line_list, beq);
     if (err)
       return err;
 
-    Line j_to_false_block = {
-      .is_label = false,
-      .data.instruction = {
-        .mnemonic = MN_J,
-        .operand_amount = 1,
-        .first_operand = {
-          .operand_type = OP_Label,
-          //.lable = "false_block"
-        }
-      }
-    };
-    sprintf(j_to_false_block.data.instruction.first_operand.lable, "%s", ctx->label_gen->false_block); 
-
+    Line j_to_false_block = jump_to_false_block(ctx);
     err = line_list_add(ctx->line_list, j_to_false_block);
     if (err)
       return err;
