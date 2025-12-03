@@ -893,7 +893,7 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
 
   }
 
-  if (node->type == Bool || node->type == And || node->type == Or || node->type == Assigment)
+  if (cgn_node->cond != NULL)
   {
     update_labels(ctx->label_gen);
 
