@@ -26,6 +26,7 @@ typedef enum
   MN_BEQ = 15,
   MN_C_AND = 16,
   MN_C_OR = 17,
+  MN_CALL = 18
 } Mnemonic;
 
 

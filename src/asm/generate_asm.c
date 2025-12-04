@@ -677,24 +677,24 @@ static int assigment(OpNode *node, GeneratorContext *ctx)
     if (!found)
       return 0;
 
-    ProgramType right_type = find_program_type(ctx->vars, right->argument, &found);
-    if (!found)
-      return 0;
+    //ProgramType right_type = find_program_type(ctx->vars, right->argument, &found);
+    //if (!found)
+      //return 0;
 
-    if (left_type != right_type)
-    {
+    //if (left_type != right_type)
+    //{
 
-      Error *type_not_equals = malloc(sizeof(Error));
-      if (!type_not_equals)
-        return -1;
+      //Error *type_not_equals = malloc(sizeof(Error));
+      //if (!type_not_equals)
+        //return -1;
 
-      type_not_equals->error_type = TYPE_NOT_EQUALS;
-      sprintf(type_not_equals->message, "Type not equals: expected %s, but found %s", ProgramType_to_str[left_type], ProgramType_to_str[right_type]);
-      type_not_equals->data.not_expeted_type.expected = left_type;
-      type_not_equals->data.not_expeted_type.was = right_type;
+      //type_not_equals->error_type = TYPE_NOT_EQUALS;
+      //sprintf(type_not_equals->message, "Type not equals: expected %s, but found %s", ProgramType_to_str[left_type], ProgramType_to_str[right_type]);
+      //type_not_equals->data.not_expeted_type.expected = left_type;
+      //type_not_equals->data.not_expeted_type.was = right_type;
 
-      error_list_add(ctx->error_list, type_not_equals);
-    }
+      //error_list_add(ctx->error_list, type_not_equals);
+    //}
 
    return 0;
 }
@@ -933,6 +933,66 @@ static int if_statment(ControlGraphNode *cgn_node, GeneratorContext *ctx)
   return 0;
 }
 
+int argument_counter = a1;
+int arguments(OpNode *node, GeneratorContext *ctx)
+{
+  if (node->type == ListExpr)
+  {
+    arguments(node->children[0], ctx);
+    arguments(node->children[1], ctx);
+    return 0;
+  }
+  else
+  {
+     int err = load_from(node, ctx);
+     if (err)
+      return err;
+
+    int reg_with_value = stack_pop(ctx->register_stack);
+
+    Line line = {
+      .is_label = false,
+      .data.instruction = {
+        .mnemonic = MN_MV,
+        .operand_amount = 2,
+        .first_operand = {
+          .operand_type = Reg,
+          .reg = argument_counter++,
+        },
+        .second_operand = {
+          .operand_type = Reg,
+          .reg = reg_with_value,
+        } 
+      }
+    };
+
+    return line_list_add(ctx->line_list, line);
+
+  }
+}
+
+int call(OpNode *node, GeneratorContext *ctx)
+{
+
+  int err = arguments(node->children[1], ctx);
+  if (err)
+    return err;
+
+  Line call_line = {
+    .is_label = false,
+    .data.instruction = {
+      .mnemonic = MN_CALL,
+      .operand_amount = 1,
+      .first_operand = {
+        .operand_type = OP_Label,
+      }
+    }
+  };
+  sprintf(call_line.data.instruction.first_operand.lable, "%s", node->children[0]->argument);
+
+  return line_list_add(ctx->line_list, call_line);
+}
+
 int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
 {
 
@@ -949,7 +1009,6 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
     {
       return cycle(cgn_node, ctx);
     }
-
 
     // Create after if block
     cgn_node->parent_accum++;
@@ -1011,11 +1070,17 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
         return err;
     }
 
+    if (node->type == CallOrIndexer)
+    {
+      int err = call(node, ctx);
+      if (err)
+        return err;
+    }
+
     if (cgn_node->def != NULL)
       return generate_asm(cgn_node->def, ctx);
 
     return 0;
-
   }
 
   if (cgn_node->cond != NULL)

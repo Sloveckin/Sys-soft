@@ -78,24 +78,6 @@ static int args(struct Node *node, Variable** array, int counter)
 
 Signature *init_signature(struct Node *node)
 {
-  /*Signature *signature = malloc(sizeof(Signature));
-  
-  const size_t name_len = strlen(node->children[0]->text) + 1;
-  signature->text = malloc(name_len * sizeof(char));
-  sprintf(signature->text, "%s", node->children[0]->text);
-
-  idex = 0;
-  ProgramType buffer[max_argument_of_function];
-  args(node->children[1], buffer);
-
-  signature->returnType = return_type(node->children[2]);
-
-  signature->argument_amount = idex;
-  signature->types = malloc(idex * sizeof(ProgramType));
-  memcpy(signature->types, buffer, idex * sizeof(ProgramType));
-
-  return signature;*/
-
 
   Signature *signature = malloc(sizeof(Signature));
   

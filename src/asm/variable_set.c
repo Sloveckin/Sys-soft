@@ -68,6 +68,8 @@ size_t find_offset(Variables *vars, char *name, bool *found)
 
 ProgramType find_program_type(Variables *vars, char *name, bool *found)
 {
+  assert (name != NULL);
+
   for (size_t i = 0; i < vars->size; i++)
   {
     if (strcmp(vars->variables[i]->name, name) == 0)
