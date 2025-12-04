@@ -44,4 +44,6 @@ size_t find_offset(Variables *var, char *name, bool *found);
 
 ProgramType find_program_type(Variables *var, char *name, bool *found);
 
+Variable *find_variable(Variables *vars, char *name, bool *found);
+
 #endif

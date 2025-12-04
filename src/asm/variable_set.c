@@ -81,6 +81,21 @@ ProgramType find_program_type(Variables *vars, char *name, bool *found)
   return -1;
 }
 
+Variable *find_variable(Variables *vars, char *name, bool *found)
+{
+  for (size_t i = 0; i < vars->size; i++)
+  {
+    if (strcmp(vars->variables[i]->name, name) == 0)
+    {
+      *found = true;
+      return vars->variables[i];
+    }
+  }
+
+  *found = false;
+  return NULL;
+}
+
 void free_variables(Variables *vars)
 {
   for (size_t i = 0; i < vars->size; i++)

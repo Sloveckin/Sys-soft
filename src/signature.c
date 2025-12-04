@@ -105,7 +105,7 @@ Signature *init_signature(struct Node *node)
 
   idex = 0;
   Variable *buffer[max_argument_of_function];
-  args(node->children[1], buffer, s1);
+  args(node->children[1], buffer, a1);
 
   signature->returnType = return_type(node->children[2]);
 

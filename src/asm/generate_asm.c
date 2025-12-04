@@ -252,6 +252,8 @@ int start_generate_asm(GeneratorContext *gen_context, Function *foo)
 
   for (size_t i = 0; i < vars.size; i++)
   {
+    if (vars.variables[i]->variable_type == V_ARGUMENT)
+      continue;
     stack_frame += byte_amount(vars.variables[i]->type);
     vars.variables[i]->data.offset = stack_frame;
   }
@@ -415,12 +417,8 @@ static int load_bool(OpNode *node, GeneratorContext *ctx)
 
 static int load_variable(OpNode *node, GeneratorContext *ctx)
 {
-  int free_reg = find_free_tmp_register(ctx->asmm);
 
-  stack_push(ctx->register_stack, free_reg);
-  ctx->asmm->interger_register[free_reg] = true;
-
-  bool found = false;
+  /*bool found = false;
   ProgramType type = find_program_type(ctx->vars, node->argument, &found);
   if (!found)
   {
@@ -434,44 +432,76 @@ static int load_variable(OpNode *node, GeneratorContext *ctx)
     error_list_add(ctx->error_list, no_such_variable);
 
     return 0;
+  }*/
+
+  bool found = false;
+  Variable *var = find_variable(ctx->vars, node->argument, &found);
+  if (found == false)
+  {
+    Error *no_such_variable = malloc(sizeof(Error));
+    if (!no_such_variable)
+      return -1;
+
+    no_such_variable->error_type = ERR_NO_SUCH_VARIABLE;
+    sprintf(no_such_variable->message, "No such variable: %s", node->argument);
+
+    error_list_add(ctx->error_list, no_such_variable);
+
+    return 0;
   }
 
-  int offset = find_offset(ctx->vars, node->argument, &found);
+  if (var->variable_type == V_VARIABLE)
+  {
 
-  Mnemonic mnemonic;
-  if (type == INT_TYPE) 
-    mnemonic = MN_LW;
-  else if (type == BYTE_TYPE)
-    mnemonic = MN_LB;
-  else if (type == LONG_TYPE)
-    mnemonic = MN_LD;
-  else if (type == BOOL_TYPE)
-    mnemonic = MN_LBU;
-  else
-    assert (0);
+    int free_reg = find_free_tmp_register(ctx->asmm);
 
-  Instruction instr_from_mem_to_reg = {
-    .mnemonic = mnemonic,
-    .operand_amount = 2,
-    .first_operand = {
-      .operand_type = Reg,
-      .reg = free_reg
-    },
-    .second_operand = {
-      .operand_type = OnStack,
-      .stack = {
-        .offset = -offset,
-        .reg = s0,
+    stack_push(ctx->register_stack, free_reg);
+    ctx->asmm->interger_register[free_reg] = true;
+
+    Mnemonic mnemonic;
+    if (var->type == INT_TYPE) 
+      mnemonic = MN_LW;
+    else if (var->type == BYTE_TYPE)
+      mnemonic = MN_LB;
+    else if (var->type == LONG_TYPE)
+      mnemonic = MN_LD;
+    else if (var->type == BOOL_TYPE)
+      mnemonic = MN_LBU;
+    else
+      assert (0);
+
+    int offset = find_offset(ctx->vars, node->argument, &found);
+
+    Instruction instr_from_mem_to_reg = {
+      .mnemonic = mnemonic,
+      .operand_amount = 2,
+      .first_operand = {
+        .operand_type = Reg,
+        .reg = free_reg
+      },
+      .second_operand = {
+        .operand_type = OnStack,
+        .stack = {
+          .offset = -offset,
+          .reg = s0,
+        }
       }
-    }
-  };
+    };
 
-  Line line = {
-    .is_label = false,
-    .data.instruction = instr_from_mem_to_reg
-  };
+    Line line = {
+      .is_label = false,
+      .data.instruction = instr_from_mem_to_reg
+    };
 
-  return line_list_add(ctx->line_list, line);
+    return line_list_add(ctx->line_list, line);
+  }
+
+
+  stack_push(ctx->register_stack, var->data.reg);
+  ctx->asmm->interger_register[var->data.reg] = true;
+
+  return 0;
+
 }
 
 
@@ -555,7 +585,7 @@ static int store_in_variable(OpNode *node, GeneratorContext *ctx)
     return -2;
 
   bool found = false;
-  ProgramType type = find_program_type(ctx->vars, node->argument, &found);
+  Variable *var = find_variable(ctx->vars, node->argument, &found);
   if (!found)
   {
     Error *no_such_variable = malloc(sizeof(Error));
@@ -570,41 +600,63 @@ static int store_in_variable(OpNode *node, GeneratorContext *ctx)
     return 0;
   }
 
-  int offset = find_offset(ctx->vars, node->argument, &found);
+  if (var->variable_type == V_VARIABLE)
+  {
+    Mnemonic mnemonic;
+    if (var->type == INT_TYPE) 
+      mnemonic = MN_SW;
+    else if (var->type == BYTE_TYPE)
+      mnemonic = MN_SB;
+    else if (var->type == LONG_TYPE)
+      mnemonic = MN_SD;
 
-  Mnemonic mnemonic;
-  if (type == INT_TYPE) 
-    mnemonic = MN_SW;
-  else if (type == BYTE_TYPE)
-    mnemonic = MN_SB;
-  else if (type == LONG_TYPE)
-    mnemonic = MN_SD;
+    int reg = stack_pop(ctx->register_stack);
 
+    Instruction instruction = {
+      .mnemonic = mnemonic,
+      .operand_amount = 2,
+      .first_operand = {
+        .operand_type = Reg,
+        .reg = reg
+      },
+      .second_operand = {
+        .operand_type = OnStack,
+        .stack = {
+          .offset = -var->data.offset,
+          .reg = s0
+        }
+      }
+    };
+    Line line = {
+      .is_label = false,
+      .data.instruction = instruction
+    };
+
+    ctx->asmm->interger_register[reg] = false;
+
+    return line_list_add(ctx->line_list, line);
+  }
+  
   int reg = stack_pop(ctx->register_stack);
-
-  Instruction instruction = {
-    .mnemonic = mnemonic,
+  Instruction instr = {
+    .mnemonic = MN_MV,
     .operand_amount = 2,
     .first_operand = {
       .operand_type = Reg,
-      .reg = reg
+      .reg = var->data.reg
     },
     .second_operand = {
-      .operand_type = OnStack,
-      .stack = {
-        .offset = -offset,
-        .reg = s0
-      }
+      .operand_type = Reg,
+      .reg = reg
     }
   };
   Line line = {
     .is_label = false,
-    .data.instruction = instruction
+    .data.instruction = instr
   };
 
-  ctx->asmm->interger_register[reg] = false;
-
   return line_list_add(ctx->line_list, line);
+  
 }
 
 static int assigment(OpNode *node, GeneratorContext *ctx)
