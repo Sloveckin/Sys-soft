@@ -25,5 +25,6 @@ ProgramType typeRefTypeFromOpType(OpNodeType type);
 
 size_t byte_amount(ProgramType type);
 
+ProgramType program_type_from_str(char *str);
 
 #endif

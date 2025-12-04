@@ -1,5 +1,8 @@
 #include <type.h>
 
+#include <string.h>
+#include <stdio.h>
+
 ProgramType typeRefTypeFromOpType(OpNodeType type)
 {
 
@@ -44,3 +47,12 @@ const char *const ProgramType_to_str[] = {
   "bool",
   "custom"
 };
+
+ProgramType program_type_from_str(char *str)
+{
+  if (strcmp(str, "int") == 0)
+    return INT_TYPE;
+
+  puts("Type not allowed yet..");
+  assert(0);
+}

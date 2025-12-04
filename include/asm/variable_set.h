@@ -5,12 +5,25 @@
 #include <stdbool.h>
 
 #include "../type.h"
+#include "asm.h"
+#include "error_list.h"
+
+typedef enum 
+{
+  V_ARGUMENT,
+  V_VARIABLE
+} VariableType;
 
 typedef struct 
 {
   ProgramType type;
   char *name;
-  size_t offset;
+  VariableType variable_type;
+  union data
+  {
+    size_t offset;
+    Register reg;
+  } data;
 } Variable;
 
 typedef struct 
@@ -23,7 +36,7 @@ typedef struct
 
 void init_variables(Variables *vars);
 
-void add_variable(Variables *vars, Variable *variable);
+int add_variable(Variables *vars, Variable *variable, ErrorList *error_list);
 
 void free_variables(Variables *vars);
 

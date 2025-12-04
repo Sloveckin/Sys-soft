@@ -13,6 +13,8 @@ int start_generate_asm(GeneratorContext *gen_context, Function *foo);
 
 ControlGraphNode *collect_variables(Function *foo, Variables *vars, int *e, ErrorList *err_list);
 
+int collect_arguments(Function *foo, GeneratorContext *ctx);
+
 int generate_asm(ControlGraphNode *node, GeneratorContext *context);
 
 #endif

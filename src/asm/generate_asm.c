@@ -236,6 +236,9 @@ int start_generate_asm(GeneratorContext *gen_context, Function *foo)
 
   int err = 0;
 
+  for (size_t i = 0; i < foo->signature->argument_amount; i++)
+    add_variable(gen_context->vars, foo->signature->arguments[i], gen_context->error_list);
+
   ControlGraphNode *start_node = collect_variables(foo, &vars, &err, gen_context->error_list);
   if (err)
   {
@@ -250,7 +253,7 @@ int start_generate_asm(GeneratorContext *gen_context, Function *foo)
   for (size_t i = 0; i < vars.size; i++)
   {
     stack_frame += byte_amount(vars.variables[i]->type);
-    vars.variables[i]->offset = stack_frame;
+    vars.variables[i]->data.offset = stack_frame;
   }
 
   stack_frame = multiply_to_16(stack_frame);
@@ -306,24 +309,9 @@ static int get_variable_name(OpNode *node, Variables *vars, ProgramType var_type
         return -1;
       }
       strcpy(new_var->name, node->argument);
+      new_var->variable_type = V_VARIABLE;
 
-      bool was_before = false;
-      find_offset(vars, new_var->name, &was_before);
-
-      if (was_before)
-      {
-        Error *error = malloc(sizeof(Error));
-        if (!error)
-          return -1;
-
-        error->error_type = ERR_DUBLICATE_VARIABLE;
-        sprintf(error->message, "Dublicate variable: %s", new_var->name);
-
-        error_list_add(error_list, error);
-
-      }
-
-      add_variable(vars, new_var);
+      return add_variable(vars, new_var, error_list);
   }
   return 0;
 }
@@ -331,6 +319,9 @@ static int get_variable_name(OpNode *node, Variables *vars, ProgramType var_type
 ControlGraphNode *collect_variables(Function *foo, Variables *vars, int *err, ErrorList *err_list)
 {
   ControlGraphNode *node = foo->control_graph;
+
+  
+
   while (node != NULL && node->operation_node->type == CREATE_VARIABLE)
   {
     OpNode *variable_list = node->operation_node->children[0];
@@ -357,6 +348,10 @@ ControlGraphNode *collect_variables(Function *foo, Variables *vars, int *err, Er
   return node;
 }
 
+int collect_arguments(Function *foo, GeneratorContext *ctx)
+{
+
+}
 
 static int load_bool_or_const(OpNode *node, GeneratorContext *ctx, bool isBool)
 {
@@ -808,6 +803,84 @@ int cycle(ControlGraphNode *cgn_node, GeneratorContext *ctx)
   return 0;
 }
 
+static int if_statment(ControlGraphNode *cgn_node, GeneratorContext *ctx)
+{
+  OpNode *node = cgn_node->operation_node;
+  update_labels(ctx->label_gen);
+
+  int err = load_from(node, ctx);
+  if (err)
+    return err;
+
+  int reg_for_one = 0;
+  Line load_one = create_true(ctx, &reg_for_one);
+
+  err = line_list_add(ctx->line_list, load_one);
+  if (err)
+    return err;
+
+  int reg_with_cond = stack_pop(ctx->register_stack);
+  Line beq = create_beq(reg_for_one, reg_with_cond, ctx);
+
+  err = line_list_add(ctx->line_list, beq);
+  if (err)
+    return err;
+
+  Line j_to_false_block = jump_to_false_block(ctx);
+  err = line_list_add(ctx->line_list, j_to_false_block);
+  if (err)
+    return err;
+
+  Line label_block_one = {
+    .is_label = true,
+    //.data.label = "true_block"
+  };
+  sprintf(label_block_one.data.label.buffer, "%s", ctx->label_gen->true_block);
+
+  err = line_list_add(ctx->line_list, label_block_one);
+  if (err)
+    return err;
+
+  // Generate block condition 
+  err = generate_asm(cgn_node->cond, ctx);
+  if (err)
+    return err;
+    
+  Line jump_to_end_block = {
+    .is_label = false,
+    .data.instruction = {
+      .mnemonic = MN_J,
+      .operand_amount = 1,
+      .first_operand = {
+        .operand_type = OP_Label,
+        //.lable = "after_block"
+      }
+    }
+  };
+  sprintf(jump_to_end_block.data.instruction.first_operand.lable, "%s", ctx->label_gen->after_block);
+
+  err = line_list_add(ctx->line_list, jump_to_end_block);
+  if (err)
+    return err;
+
+  Line label_block_false = {
+    .is_label = true,
+    //.data.label.buffer = "false_block"
+  };
+  sprintf(label_block_false.data.label.buffer, "%s", ctx->label_gen->false_block);
+
+  err = line_list_add(ctx->line_list, label_block_false);
+  if (err)
+    return err;
+    
+  // Generate block defualt
+  err = generate_asm(cgn_node->def, ctx);
+  if (err)
+    return err;
+    
+  return 0;
+}
+
 int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
 {
 
@@ -894,82 +967,7 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
   }
 
   if (cgn_node->cond != NULL)
-  {
-    update_labels(ctx->label_gen);
-
-    int err = load_from(node, ctx);
-    if (err)
-      return err;
-
-    int reg_for_one = 0;
-    Line load_one = create_true(ctx, &reg_for_one);
-
-    err = line_list_add(ctx->line_list, load_one);
-    if (err)
-      return err;
-
-    int reg_with_cond = stack_pop(ctx->register_stack);
-    Line beq = create_beq(reg_for_one, reg_with_cond, ctx);
-
-    err = line_list_add(ctx->line_list, beq);
-    if (err)
-      return err;
-
-    Line j_to_false_block = jump_to_false_block(ctx);
-    err = line_list_add(ctx->line_list, j_to_false_block);
-    if (err)
-      return err;
-
-    Line label_block_one = {
-      .is_label = true,
-      //.data.label = "true_block"
-    };
-    sprintf(label_block_one.data.label.buffer, "%s", ctx->label_gen->true_block);
-
-    err = line_list_add(ctx->line_list, label_block_one);
-    if (err)
-      return err;
-
-    // Generate block condition 
-    err = generate_asm(cgn_node->cond, ctx);
-    if (err)
-      return err;
-    
-    Line jump_to_end_block = {
-      .is_label = false,
-      .data.instruction = {
-        .mnemonic = MN_J,
-        .operand_amount = 1,
-        .first_operand = {
-          .operand_type = OP_Label,
-          //.lable = "after_block"
-        }
-      }
-    };
-    sprintf(jump_to_end_block.data.instruction.first_operand.lable, "%s", ctx->label_gen->after_block);
-
-    err = line_list_add(ctx->line_list, jump_to_end_block);
-    if (err)
-      return err;
-
-    Line label_block_false = {
-      .is_label = true,
-      //.data.label.buffer = "false_block"
-    };
-    sprintf(label_block_false.data.label.buffer, "%s", ctx->label_gen->false_block);
-
-    err = line_list_add(ctx->line_list, label_block_false);
-    if (err)
-      return err;
-    
-    // Generate block defualt
-    err = generate_asm(cgn_node->def, ctx);
-    if (err)
-      return err;
-    
-    return 0;
-  }
-
+    return if_statment(cgn_node, ctx);
 
   assert (0);
 

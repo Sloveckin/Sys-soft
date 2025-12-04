@@ -2,6 +2,7 @@
 #define H_SIGNATURE
 
 #include <stddef.h>
+#include "asm/variable_set.h"
 #include "node.h"
 #include "type.h"
 
@@ -10,7 +11,7 @@ typedef struct
 {
  char *text;
   size_t argument_amount;
-  ProgramType *types;
+  Variable **arguments;
   ProgramType returnType;
 } Signature;
 
