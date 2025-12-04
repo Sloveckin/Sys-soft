@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include <stdio.h>
+
 #define LABEL_LENGTH 256
 
 typedef enum
@@ -126,7 +128,7 @@ int find_free_tmp_register(Asm *assm);
 
 int find_busy_tmp_register(Asm *assm, int index);
 
-void instruction_to_str(Line *instruction);
+void instruction_to_str(Line *instruction, FILE *file);
 
 void operand_to_str(Operand *operand, char *buffer);
 

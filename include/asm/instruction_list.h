@@ -2,6 +2,7 @@
 #define H_INSTRUCTION_LIST
 
 #include <stddef.h>
+#include <stdio.h>
 
 #include "asm.h"
 
@@ -14,6 +15,6 @@ int line_list_add(LineListNode *list, Line line);
 
 void free_instruction_list(LineListNode *list);
 
-void print_list(LineListNode *list);
+void print_list(LineListNode *list, FILE *file);
 
 #endif

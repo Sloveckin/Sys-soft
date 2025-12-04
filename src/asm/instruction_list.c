@@ -32,13 +32,13 @@ void free_instruction_list(LineListNode *list)
   free(list);
 }
 
-void print_list(LineListNode *list)
+void print_list(LineListNode *list, FILE *file)
 {
   LineListNode *current = list;
   while (current->next != NULL)
   {
-    instruction_to_str(&current->line);
+    instruction_to_str(&current->line, file);
     current = current->next;
   }
-  instruction_to_str(&current->line);
+  instruction_to_str(&current->line, file);
 }

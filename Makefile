@@ -36,4 +36,3 @@ generated/parser.tab.c: src/parser.y
 
 generated/lex.yy.c: src/lexer.lex
 	$(LEX) $(LFLAGS) -o $@ $<
-	

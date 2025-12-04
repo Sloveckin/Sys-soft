@@ -83,12 +83,12 @@ void init_asm(Asm *asmm)
   }
 }
 
-void instruction_to_str(Line *line)
+void instruction_to_str(Line *line, FILE *file)
 {
 
   if (line->is_label)
   {
-    printf("%s:\n", line->data.label.buffer);
+    fprintf(file, "%s:\n", line->data.label.buffer);
     return;
   }
 
@@ -96,13 +96,13 @@ void instruction_to_str(Line *line)
 
   if (instruction.operand_amount == 0)
   {
-    printf("\t%s\n", mnemonic_to_string[instruction.mnemonic]);
+    fprintf(file,"\t%s\n", mnemonic_to_string[instruction.mnemonic]);
   }
   else if (instruction.operand_amount == 1)
   {
     char buffer[128];
     operand_to_str(&instruction.first_operand, buffer);
-    printf("\t%s %s\n", mnemonic_to_string[instruction.mnemonic], buffer);
+    fprintf(file,"\t%s %s\n", mnemonic_to_string[instruction.mnemonic], buffer);
   }
   else if (instruction.operand_amount == 2)
   {
@@ -112,7 +112,7 @@ void instruction_to_str(Line *line)
     operand_to_str(&instruction.first_operand, buffer1);
     operand_to_str(&instruction.second_operand, buffer2);
 
-    printf("\t%s %s, %s\n", mnemonic_to_string[instruction.mnemonic], buffer1, buffer2);
+    fprintf(file, "\t%s %s, %s\n", mnemonic_to_string[instruction.mnemonic], buffer1, buffer2);
   }
   else if (instruction.operand_amount == 3)
   {
@@ -124,7 +124,7 @@ void instruction_to_str(Line *line)
     operand_to_str(&instruction.second_operand, buffer2);
     operand_to_str(&instruction.third_operand, buffer3);
 
-    printf("\t%s %s, %s, %s\n", mnemonic_to_string[instruction.mnemonic], buffer1, buffer2, buffer3);
+    fprintf(file, "\t%s %s, %s, %s\n", mnemonic_to_string[instruction.mnemonic], buffer1, buffer2, buffer3);
   }
 
 }
