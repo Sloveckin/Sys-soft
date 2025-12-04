@@ -125,14 +125,14 @@ int main(int argc, char **argv)
         }
 
 
-        char *asm_file_name = malloc(strlen(argv[j]) + 4);
+        char *asm_file_name = malloc(strlen(argv[j]) + 2);
         if (asm_file_name == NULL)
         {
           error_list_free(&err_list);
           free_instruction_list(list);
           return -1;
         }
-        sprintf(asm_file_name, "%s.asm", argv[j]);
+        sprintf(asm_file_name, "%s.s", argv[j]);
 
         FILE *asm_file = fopen(asm_file_name, "w");
         if (asm_file == NULL)

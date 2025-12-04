@@ -86,13 +86,22 @@ void init_asm(Asm *asmm)
 void instruction_to_str(Line *line, FILE *file)
 {
 
+  Instruction instruction = line->data.instruction;
+
+  if (line->is_label == false && instruction.mnemonic == MN_GLOBAL)
+  {
+    char buffer[128];
+    operand_to_str(&instruction.first_operand, buffer);
+    fputs(".global main\n", file);
+    return;
+  }
+
   if (line->is_label)
   {
     fprintf(file, "%s:\n", line->data.label.buffer);
     return;
   }
 
-  Instruction instruction = line->data.instruction;
 
   if (instruction.operand_amount == 0)
   {

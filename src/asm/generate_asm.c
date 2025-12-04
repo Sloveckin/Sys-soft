@@ -260,13 +260,39 @@ int start_generate_asm(GeneratorContext *gen_context, Function *foo)
 
   stack_frame = multiply_to_16(stack_frame);
 
+  if (strcmp(foo->signature->text, "main") == 0)
+  {
+    Line global = {
+      .is_label = false,
+      .data.instruction = {
+        .mnemonic = MN_GLOBAL,
+        .operand_amount = 1,
+        .first_operand = {
+          .operand_type = OP_Label,
+          .lable = "main"
+        }
+      }
+    };
+
+    gen_context->line_list->line = global;
+
+  }
   
   Line label = {
     .is_label = true,
   };
   sprintf(label.data.label.buffer, "%s", foo->signature->text);
   
-  gen_context->line_list->line = label;
+  if (strcmp(foo->signature->text, "main") == 0)
+  {
+    int err = line_list_add(gen_context->line_list, label);
+    if (err)
+      return err;
+  }
+  else
+  {
+    gen_context->line_list->line = label;
+  }
 
   preamble(gen_context->asmm, foo, gen_context->line_list, stack_frame);
 
@@ -350,11 +376,6 @@ ControlGraphNode *collect_variables(Function *foo, Variables *vars, int *err, Er
   return node;
 }
 
-int collect_arguments(Function *foo, GeneratorContext *ctx)
-{
-
-}
-
 static int load_bool_or_const(OpNode *node, GeneratorContext *ctx, bool isBool)
 {
   int reg = find_free_tmp_register(ctx->asmm);
@@ -417,23 +438,6 @@ static int load_bool(OpNode *node, GeneratorContext *ctx)
 
 static int load_variable(OpNode *node, GeneratorContext *ctx)
 {
-
-  /*bool found = false;
-  ProgramType type = find_program_type(ctx->vars, node->argument, &found);
-  if (!found)
-  {
-    Error *no_such_variable = malloc(sizeof(Error));
-    if (!no_such_variable)
-      return -1;
-
-    no_such_variable->error_type = ERR_NO_SUCH_VARIABLE;
-    sprintf(no_such_variable->message, "No such variable: %s", node->argument);
-
-    error_list_add(ctx->error_list, no_such_variable);
-
-    return 0;
-  }*/
-
   bool found = false;
   Variable *var = find_variable(ctx->vars, node->argument, &found);
   if (found == false)
