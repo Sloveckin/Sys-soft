@@ -57,7 +57,7 @@ const char *const mnemonic_to_string[] = {
   "c.or",
   "call",
   ".global",
-  "blt"
+  "slti"
 };
 
 

@@ -551,6 +551,8 @@ static int binary_operation(OpNode *node, GeneratorContext *ctx)
       mnemonic = MN_C_AND;
     else if (node->type == Or)
       mnemonic = MN_C_OR;
+    else if (node->type == Less)
+      mnemonic = MN_SLTI;
     else
       assert (0);
 
@@ -581,25 +583,22 @@ static int binary_operation(OpNode *node, GeneratorContext *ctx)
     return line_list_add(ctx->line_list, line);
 }
 
+#if 0
 static int less_more(OpNode *node, GeneratorContext *ctx)
 {
   OpNode *left = node->children[0];
   OpNode *right = node->children[1];
 
   int err = load_from(left, ctx);
-  if (err)
-    return err;
 
   err = load_from(right, ctx);
-  if (err)
-    return err;
 
   int reg2 = stack_pop(ctx->register_stack);
   int reg1 = stack_pop(ctx->register_stack);
 
   Mnemonic mnemonic;
   if (node->type == Less)
-    mnemonic = MN_BLT;
+    mnemonic = MN_SLTI;
   else
     assert (0);
 
@@ -624,8 +623,8 @@ static int less_more(OpNode *node, GeneratorContext *ctx)
   stack_push(ctx->register_stack, reg1);
     
   return line_list_add(ctx->line_list, line);
-
 }
+#endif
 
 static int load_from(OpNode *node, GeneratorContext *ctx)
 {
@@ -635,10 +634,8 @@ static int load_from(OpNode *node, GeneratorContext *ctx)
     return load_variable(node, ctx);
   else if(node->type == Bool)
     return load_bool(node, ctx);
-  else if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV || node->type == And || node->type == Or)
+  else if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV || node->type == And || node->type == Or || node->type == Less)
     return binary_operation(node, ctx);
-  else if (node->type == Less)
-    return less_more(node, ctx);
   else if (node->type == CallOrIndexer)
     return call_or_indexer(node, ctx);
 
@@ -823,6 +820,14 @@ static Line create_beq(int reg1, int reg2, GeneratorContext *ctx)
   return beq;
 }
 
+static Line create_b(OpNode *node, int reg1, int reg2, GeneratorContext *ctx)
+{
+  if (node->type == Bool)
+    return create_beq(reg1, reg2, ctx);
+
+  assert (0);
+}
+
 static Line jump_to_false_block(GeneratorContext *ctx)
 {
   Line j_to_false_block = {
@@ -868,7 +873,7 @@ int cycle(ControlGraphNode *cgn_node, GeneratorContext *ctx)
     return err;
 
   int reg_with_cond = stack_pop(ctx->register_stack);
-  Line beq = create_beq(reg_for_one, reg_with_cond, ctx);
+  Line beq = create_b(node, reg_for_one, reg_with_cond, ctx); //create_beq(reg_for_one, reg_with_cond, ctx);
 
   err = line_list_add(ctx->line_list, beq);
   if (err)

@@ -30,7 +30,7 @@ typedef enum
   MN_C_OR = 17,
   MN_CALL = 18,
   MN_GLOBAL = 19,
-  MN_BLT = 20
+  MN_SLTI = 20
 } Mnemonic;
 
 
