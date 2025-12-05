@@ -551,12 +551,10 @@ static int binary_operation(OpNode *node, GeneratorContext *ctx)
       mnemonic = MN_C_AND;
     else if (node->type == Or)
       mnemonic = MN_C_OR;
-    else if (node->type == Less)
-      mnemonic = MN_BLT;
     else
       assert (0);
 
-    Instruction add = {
+    Instruction instr = {
       .mnemonic = mnemonic,
       .operand_amount = 3,
       .first_operand = {
@@ -574,13 +572,59 @@ static int binary_operation(OpNode *node, GeneratorContext *ctx)
     };
     Line line = {
       .is_label = false,
-      .data.instruction = add
+      .data.instruction = instr
     };
 
     ctx->asmm->interger_register[reg2] = false;
     stack_push(ctx->register_stack, reg1);
     
     return line_list_add(ctx->line_list, line);
+}
+
+static int less_more(OpNode *node, GeneratorContext *ctx)
+{
+  OpNode *left = node->children[0];
+  OpNode *right = node->children[1];
+
+  int err = load_from(left, ctx);
+  if (err)
+    return err;
+
+  err = load_from(right, ctx);
+  if (err)
+    return err;
+
+  int reg2 = stack_pop(ctx->register_stack);
+  int reg1 = stack_pop(ctx->register_stack);
+
+  Mnemonic mnemonic;
+  if (node->type == Less)
+    mnemonic = MN_BLT;
+  else
+    assert (0);
+
+  Instruction instr = {
+    .mnemonic = mnemonic,
+    .operand_amount = 2,
+    .first_operand = {
+      .operand_type = Reg,
+      .reg = reg1,
+    },
+    .second_operand = {
+      .operand_type = Reg,
+      .reg = reg2,
+    },
+  };
+  Line line = {
+    .is_label = false,
+    .data.instruction = instr
+  };
+
+  ctx->asmm->interger_register[reg2] = false;
+  stack_push(ctx->register_stack, reg1);
+    
+  return line_list_add(ctx->line_list, line);
+
 }
 
 static int load_from(OpNode *node, GeneratorContext *ctx)
@@ -591,8 +635,10 @@ static int load_from(OpNode *node, GeneratorContext *ctx)
     return load_variable(node, ctx);
   else if(node->type == Bool)
     return load_bool(node, ctx);
-  else if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV || node->type == And || node->type == Or || node->type == Less)
+  else if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV || node->type == And || node->type == Or)
     return binary_operation(node, ctx);
+  else if (node->type == Less)
+    return less_more(node, ctx);
   else if (node->type == CallOrIndexer)
     return call_or_indexer(node, ctx);
 
