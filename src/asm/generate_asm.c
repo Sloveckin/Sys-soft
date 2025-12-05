@@ -731,13 +731,17 @@ static Line create_true(GeneratorContext *ctx, int *reg_for_one)
   Line load_one = {
     .is_label = false,
     .data.instruction = {
-      .mnemonic = MN_MV,
-      .operand_amount = 2,
+      .mnemonic = MN_ADDI,
+      .operand_amount = 3,
       .first_operand = {
         .operand_type = Reg,
         .reg = reg,
       },
       .second_operand = {
+        .operand_type = Reg,
+        .reg = zero,
+      },
+      .third_operand = {
         .operand_type = Value,
         .value = 1
       }
