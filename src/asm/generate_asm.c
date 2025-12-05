@@ -551,6 +551,10 @@ static int binary_operation(OpNode *node, GeneratorContext *ctx)
       mnemonic = MN_C_AND;
     else if (node->type == Or)
       mnemonic = MN_C_OR;
+    else if (node->type == Less)
+      mnemonic = MN_BLT;
+    else
+      assert (0);
 
     Instruction add = {
       .mnemonic = mnemonic,
@@ -587,7 +591,7 @@ static int load_from(OpNode *node, GeneratorContext *ctx)
     return load_variable(node, ctx);
   else if(node->type == Bool)
     return load_bool(node, ctx);
-  else if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV || node->type == And || node->type == Or)
+  else if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV || node->type == And || node->type == Or || node->type == Less)
     return binary_operation(node, ctx);
   else if (node->type == CallOrIndexer)
     return call_or_indexer(node, ctx);
@@ -1097,7 +1101,7 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
         return err;
     }
 
-    if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV)
+    if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV || node->type == Load || node->type == CONST)
     {
       int err = load_from(node, ctx);
       if (err)
