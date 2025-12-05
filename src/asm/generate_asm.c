@@ -250,12 +250,14 @@ int start_generate_asm(GeneratorContext *gen_context, Function *foo)
   gen_context->asmm->integer_on_stack[ra] = 8;
   gen_context->asmm->integer_on_stack[s0] = 0;
 
+  size_t variable_place = 0;
+
   for (size_t i = 0; i < vars.size; i++)
   {
     if (vars.variables[i]->variable_type == V_ARGUMENT)
       continue;
-    stack_frame += byte_amount(vars.variables[i]->type);
-    vars.variables[i]->data.offset = stack_frame;
+    variable_place += byte_amount(vars.variables[i]->type);
+    vars.variables[i]->data.offset = variable_place;
   }
 
   stack_frame = multiply_to_16(stack_frame);
