@@ -284,7 +284,8 @@ braces: BR_OPEN expr BR_CLOSE { $$ = $2; }
 ;
 
 listExpr: 
-          listExpr COMMA expr 
+          { $$ = NULL; }
+          | listExpr COMMA expr 
           {
             $$ = create_node(2, "", "ListExpr");
             add_child($$, $1, 0);

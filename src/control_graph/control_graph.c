@@ -415,9 +415,17 @@ ControlGraphNode *foo(Contex *context, struct Node *node)
     ControlGraphNode *var = foo(context, node->children[1]);
 
     const size_t proc_len = strlen(proc->text);
-    const size_t var_len = strlen(var->text);
-    cgn->text = malloc((proc_len + var_len + 3) * sizeof(char));
-    sprintf(cgn->text, "%s(%s)", proc->text, var->text);
+    if (var != NULL)
+    {
+      const size_t var_len = strlen(var->text);
+      cgn->text = malloc((proc_len + var_len + 3) * sizeof(char));
+      sprintf(cgn->text, "%s(%s)", proc->text, var->text);
+    }
+    else 
+    {
+      cgn->text = malloc((proc_len + 3) * sizeof(char));
+      sprintf(cgn->text, "%s()", proc->text);
+    }
 
     cgn->operation_node = create_operation_tree_node(node);
 
@@ -540,6 +548,15 @@ char *get_text(struct Node *node)
 
   if (strcmp(node->type, "Not") == 0)
     return get_text_form_unary_operation(node, "!"); 
+
+  if (strcmp(node->type, "CallOrIndexer") == 0)
+  {
+    char *text = malloc(strlen(node->children[0]->text) * sizeof(char)); 
+    if (text == NULL)
+      return NULL;
+    sprintf(text, "%s", node->children[0]->text);
+    return text;
+  }
 
   assert (0);
 }

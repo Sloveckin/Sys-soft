@@ -78,6 +78,18 @@ int main(int argc, char **argv)
       memset(functions, 0, max_functions * sizeof(struct Node *));
       find_func_def(root, functions);
 
+      char *asm_file_name = malloc(strlen(argv[j]) + 2);
+      if (asm_file_name == NULL)
+        return -1;
+
+      sprintf(asm_file_name, "%s.s", argv[j]);
+
+      FILE *asm_file = fopen(asm_file_name, "w");
+      if (asm_file == NULL)
+      {
+        free(asm_file_name);
+        return -1;
+      }
 
       for (size_t i = 0; i < max_functions; i++)
       {
@@ -125,36 +137,16 @@ int main(int argc, char **argv)
         }
 
 
-        char *asm_file_name = malloc(strlen(argv[j]) + 2);
-        if (asm_file_name == NULL)
-        {
-          error_list_free(&err_list);
-          free_instruction_list(list);
-          return -1;
-        }
-        sprintf(asm_file_name, "%s.s", argv[j]);
-
-        FILE *asm_file = fopen(asm_file_name, "w");
-        if (asm_file == NULL)
-        {
-          error_list_free(&err_list);
-          free_instruction_list(list);
-          free(asm_file_name);
-          return -1;
-        }
-
-
         print_list(list, asm_file);
-
         write_into_file(&context, argv[j], &func);
-        
         error_list_free(&err_list);
         free_instruction_list(list);
-        free(asm_file_name);
-        fclose(asm_file);
       }
       memset(functions, 0, sizeof(functions));
       yylex_destroy();
+
+      free(asm_file_name);
+      fclose(asm_file);
     }
 
     free_node(root);

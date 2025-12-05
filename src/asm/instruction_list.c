@@ -41,4 +41,5 @@ void print_list(LineListNode *list, FILE *file)
     current = current->next;
   }
   instruction_to_str(&current->line, file);
+  fputs("\n", file);
 }

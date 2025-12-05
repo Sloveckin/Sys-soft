@@ -113,6 +113,10 @@ static OpNode *break_op(struct Node *node)
 
 OpNode *create_operation_tree_node(struct Node *node)
 {
+
+  if (node == NULL)
+    return NULL;
+
   if (strcmp(node->type, "Identifier") == 0 || strcmp(node->type, "Number") == 0)
   {
     OpNode *op = create_op_node();
@@ -267,6 +271,9 @@ OpNode *create_operation_tree_node(struct Node *node)
 
 void free_operation_tree(OpNode *node)
 {
+  if (node == NULL)
+    return;
+
   for (size_t i = 0; i < node->children_amount; i++)
     free_operation_tree(node->children[i]);
 

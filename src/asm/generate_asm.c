@@ -246,7 +246,7 @@ int start_generate_asm(GeneratorContext *gen_context, Function *foo)
     return -1;
   }
 
-  size_t stack_frame = 16;
+  size_t stack_frame = 32;
   gen_context->asmm->integer_on_stack[ra] = 8;
   gen_context->asmm->integer_on_stack[s0] = 0;
 
@@ -500,14 +500,23 @@ static int load_variable(OpNode *node, GeneratorContext *ctx)
     return line_list_add(ctx->line_list, line);
   }
 
-
   stack_push(ctx->register_stack, var->data.reg);
   ctx->asmm->interger_register[var->data.reg] = true;
 
   return 0;
-
 }
 
+static int call(OpNode *node, GeneratorContext *ctx);
+
+static int call_or_indexer(OpNode *node, GeneratorContext *ctx)
+{
+  stack_push(ctx->register_stack, a0);
+  ctx->asmm->interger_register[a0] = true;
+
+  call(node, ctx);
+
+  return 0;
+}
 
 static int load_from(OpNode *node, GeneratorContext *ctx);
 
@@ -578,7 +587,8 @@ static int load_from(OpNode *node, GeneratorContext *ctx)
     return load_bool(node, ctx);
   else if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV || node->type == And || node->type == Or)
     return binary_operation(node, ctx);
-  
+  else if (node->type == CallOrIndexer)
+    return call_or_indexer(node, ctx);
 
   assert (0);
 }
@@ -940,6 +950,10 @@ static int if_statment(ControlGraphNode *cgn_node, GeneratorContext *ctx)
 int argument_counter = a1;
 int arguments(OpNode *node, GeneratorContext *ctx)
 {
+
+  if (node == NULL)
+    return 0;
+
   if (node->type == ListExpr)
   {
     arguments(node->children[0], ctx);
@@ -1081,8 +1095,37 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
         return err;
     }
 
+    if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV)
+    {
+      int err = load_from(node, ctx);
+      if (err)
+        return err;
+
+      int reg = stack_pop(ctx->register_stack);
+
+      Instruction instr = {
+      .mnemonic = MN_MV,
+      .operand_amount = 2,
+      .first_operand = {
+        .operand_type = Reg,
+        .reg = a0,
+      },
+      .second_operand = {
+        .operand_type = Reg,
+        .reg = reg
+      }
+      };
+      Line line = {
+        .is_label = false,
+        .data.instruction = instr
+      };
+
+      return line_list_add(ctx->line_list, line);
+    }
+
     if (cgn_node->def != NULL)
       return generate_asm(cgn_node->def, ctx);
+
 
     return 0;
   }
