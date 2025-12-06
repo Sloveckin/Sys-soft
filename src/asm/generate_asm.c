@@ -552,7 +552,7 @@ static int binary_operation(OpNode *node, GeneratorContext *ctx)
     else if (node->type == Or)
       mnemonic = MN_C_OR;
     else if (node->type == Less)
-      mnemonic = MN_SLTI;
+      mnemonic = MN_SLT;
     else
       assert (0);
 
@@ -583,7 +583,6 @@ static int binary_operation(OpNode *node, GeneratorContext *ctx)
     return line_list_add(ctx->line_list, line);
 }
 
-#if 0
 static int less_more(OpNode *node, GeneratorContext *ctx)
 {
   OpNode *left = node->children[0];
@@ -598,21 +597,25 @@ static int less_more(OpNode *node, GeneratorContext *ctx)
 
   Mnemonic mnemonic;
   if (node->type == Less)
-    mnemonic = MN_SLTI;
+    mnemonic = MN_SLT;
   else
     assert (0);
 
   Instruction instr = {
     .mnemonic = mnemonic,
-    .operand_amount = 2,
+    .operand_amount = 3,
     .first_operand = {
-      .operand_type = Reg,
-      .reg = reg1,
-    },
-    .second_operand = {
       .operand_type = Reg,
       .reg = reg2,
     },
+    .second_operand = {
+      .operand_type = Reg,
+      .reg = reg1,
+    },
+    .third_operand = {
+      .operand_type = Reg,
+      .reg = reg2,
+    }
   };
   Line line = {
     .is_label = false,
@@ -624,7 +627,6 @@ static int less_more(OpNode *node, GeneratorContext *ctx)
     
   return line_list_add(ctx->line_list, line);
 }
-#endif
 
 static int load_from(OpNode *node, GeneratorContext *ctx)
 {
@@ -634,8 +636,10 @@ static int load_from(OpNode *node, GeneratorContext *ctx)
     return load_variable(node, ctx);
   else if(node->type == Bool)
     return load_bool(node, ctx);
-  else if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV || node->type == And || node->type == Or || node->type == Less)
+  else if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV || node->type == And || node->type == Or)
     return binary_operation(node, ctx);
+  else if (node->type == Less)
+    return less_more(node, ctx);
   else if (node->type == CallOrIndexer)
     return call_or_indexer(node, ctx);
 
