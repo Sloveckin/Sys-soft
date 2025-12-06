@@ -520,18 +520,18 @@ static int call_or_indexer(OpNode *node, GeneratorContext *ctx)
   return 0;
 }
 
-static int load_from(OpNode *node, GeneratorContext *ctx);
+static int load_from(OpNode *node, GeneratorContext *ctx, bool change_register);
 
 static int binary_operation(OpNode *node, GeneratorContext *ctx)
 {
     OpNode *left = node->children[0];
     OpNode *right = node->children[1];
 
-    int err = load_from(left, ctx);
+    int err = load_from(left, ctx, true);
     if (err)
       return err;
 
-    err = load_from(right, ctx);
+    err = load_from(right, ctx, true);
     if (err)
       return err;
 
@@ -588,9 +588,9 @@ static int less_more(OpNode *node, GeneratorContext *ctx)
   OpNode *left = node->children[0];
   OpNode *right = node->children[1];
 
-  int err = load_from(left, ctx);
+  int err = load_from(left, ctx, true);
 
-  err = load_from(right, ctx);
+  err = load_from(right, ctx, true);
 
   int reg2 = stack_pop(ctx->register_stack);
   int reg1 = stack_pop(ctx->register_stack);
@@ -628,7 +628,77 @@ static int less_more(OpNode *node, GeneratorContext *ctx)
   return line_list_add(ctx->line_list, line);
 }
 
-static int load_from(OpNode *node, GeneratorContext *ctx)
+static int binary_operation_without_storing(OpNode *node, GeneratorContext *ctx)
+{
+   OpNode *left = node->children[0];
+    OpNode *right = node->children[1];
+
+    int err = load_from(left, ctx, false);
+    if (err)
+      return err;
+
+    err = load_from(right, ctx, false);
+    if (err)
+      return err;
+
+    int reg2 = stack_pop(ctx->register_stack);
+    int reg1 = stack_pop(ctx->register_stack);
+
+
+    int reg = find_free_tmp_register(ctx->asmm);
+    if (reg == -1)
+    {
+      puts("Emtpy tmp register not found");
+      assert (0);
+    }
+
+    Mnemonic mnemonic;
+    if (node->type == ADD)
+      mnemonic = MN_ADD;
+    else if (node->type == SUB)
+      mnemonic = MN_SUB;
+    else if (node->type == MUL)
+      mnemonic = MN_MUL;
+    else if (node->type == DIV)
+      mnemonic = MN_DIV;
+    else if (node->type == And)
+      mnemonic = MN_C_AND;
+    else if (node->type == Or)
+      mnemonic = MN_C_OR;
+    else if (node->type == Less)
+      mnemonic = MN_SLT;
+    else
+      assert (0);
+
+    Instruction instr = {
+      .mnemonic = mnemonic,
+      .operand_amount = 3,
+      .first_operand = {
+        .operand_type = Reg,
+        .reg = reg,
+      },
+      .second_operand = {
+        .operand_type = Reg,
+        .reg = reg1,
+      },
+      .third_operand = {
+        .operand_type = Reg,
+        .reg = reg2,
+      }
+    };
+    Line line = {
+      .is_label = false,
+      .data.instruction = instr
+    };
+
+    ctx->asmm->interger_register[reg2] = false;
+    ctx->asmm->interger_register[reg] = true;
+    stack_push(ctx->register_stack, reg);
+    
+    return line_list_add(ctx->line_list, line);
+}
+
+static int load_from(OpNode *node, GeneratorContext *ctx, bool change_register)
 {
   if (node->type == CONST)
     return load_const(node, ctx);
@@ -637,7 +707,12 @@ static int load_from(OpNode *node, GeneratorContext *ctx)
   else if(node->type == Bool)
     return load_bool(node, ctx);
   else if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV || node->type == And || node->type == Or)
-    return binary_operation(node, ctx);
+  {
+    if (change_register == true)
+      return binary_operation(node, ctx);
+    else 
+      return binary_operation_without_storing(node, ctx);
+  }
   else if (node->type == Less)
     return less_more(node, ctx);
   else if (node->type == CallOrIndexer)
@@ -731,7 +806,7 @@ static int assigment(OpNode *node, GeneratorContext *ctx)
     OpNode *left = node->children[0];
     OpNode *right = node->children[1];
 
-    int err = load_from(right, ctx);
+    int err = load_from(right, ctx, true);
     if (err)
       return err;
 
@@ -865,7 +940,7 @@ int cycle(ControlGraphNode *cgn_node, GeneratorContext *ctx)
   if (err)
     return 0;
 
-  err = load_from(node, ctx);
+  err = load_from(node, ctx, true);
   if (err)
     return err;
 
@@ -939,7 +1014,7 @@ static int if_statment(ControlGraphNode *cgn_node, GeneratorContext *ctx)
   OpNode *node = cgn_node->operation_node;
   update_labels(ctx->label_gen);
 
-  int err = load_from(node, ctx);
+  int err = load_from(node, ctx, true);
   if (err)
     return err;
 
@@ -1012,7 +1087,7 @@ static int if_statment(ControlGraphNode *cgn_node, GeneratorContext *ctx)
   return 0;
 }
 
-int argument_counter = a1;
+int argument_counter = a0;
 int arguments(OpNode *node, GeneratorContext *ctx)
 {
 
@@ -1027,10 +1102,10 @@ int arguments(OpNode *node, GeneratorContext *ctx)
   }
   else
   {
-     int err = load_from(node, ctx);
+     int err = load_from(node, ctx, false);
      if (err)
       return err;
-
+    
     int reg_with_value = stack_pop(ctx->register_stack);
 
     Line line = {
@@ -1050,13 +1125,12 @@ int arguments(OpNode *node, GeneratorContext *ctx)
     };
 
     return line_list_add(ctx->line_list, line);
-
   }
 }
 
 int call(OpNode *node, GeneratorContext *ctx)
 {
-
+  argument_counter = a0;
   int err = arguments(node->children[1], ctx);
   if (err)
     return err;
@@ -1162,7 +1236,7 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
 
     if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV || node->type == Load || node->type == CONST)
     {
-      int err = load_from(node, ctx);
+      int err = load_from(node, ctx, true);
       if (err)
         return err;
 
