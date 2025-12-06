@@ -622,8 +622,8 @@ static int less_more(OpNode *node, GeneratorContext *ctx)
     .data.instruction = instr
   };
 
-  ctx->asmm->interger_register[reg2] = false;
-  stack_push(ctx->register_stack, reg1);
+  ctx->asmm->interger_register[reg1] = false;
+  stack_push(ctx->register_stack, reg2);
     
   return line_list_add(ctx->line_list, line);
 }
