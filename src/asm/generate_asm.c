@@ -223,6 +223,41 @@ static int epilog(Asm *asmm, LineListNode *list, int stack_frame)
   return 0;
 }
 
+int push_args_on_stack(GeneratorContext *ctx)
+{
+  for (size_t i = 0; i < ctx->vars->size; i++)
+  {
+    Variable *var = ctx->vars->variables[i];
+
+    if (var->variable_type != V_ARGUMENT)
+      continue;
+
+    Line line = {
+      .is_label = false,
+      .data.instruction = {
+        .mnemonic = MN_SW,
+        .operand_amount = 2,
+        .first_operand = {
+          .operand_type = Reg,
+          .reg = var->data.reg,
+        },
+        .second_operand = {
+          .operand_type = OnStack,
+          .stack = {
+            .offset = -var->data.offset,
+            .reg = s0
+          }
+        }
+      }
+    };
+
+    int err = line_list_add(ctx->line_list, line);
+    if (err)
+      return err;
+  }
+  return 0;
+}
+
 int start_generate_asm(GeneratorContext *gen_context, Function *foo)
 {
   Variables vars;
@@ -254,8 +289,8 @@ int start_generate_asm(GeneratorContext *gen_context, Function *foo)
 
   for (size_t i = 0; i < vars.size; i++)
   {
-    if (vars.variables[i]->variable_type == V_ARGUMENT)
-      continue;
+    //if (vars.variables[i]->variable_type == V_ARGUMENT)
+    //  continue;
     variable_place += byte_amount(vars.variables[i]->type);
     vars.variables[i]->data.offset = variable_place;
   }
@@ -305,6 +340,10 @@ int start_generate_asm(GeneratorContext *gen_context, Function *foo)
     return 0; 
   }
 
+  err = push_args_on_stack(gen_context);
+  if (err)
+    return err;
+
   err = generate_asm(start_node, gen_context);
   if (err)
     return err;
@@ -349,8 +388,6 @@ static int get_variable_name(OpNode *node, Variables *vars, ProgramType var_type
 ControlGraphNode *collect_variables(Function *foo, Variables *vars, int *err, ErrorList *err_list)
 {
   ControlGraphNode *node = foo->control_graph;
-
-  
 
   while (node != NULL && node->operation_node->type == CREATE_VARIABLE)
   {
@@ -502,8 +539,40 @@ static int load_variable(OpNode *node, GeneratorContext *ctx)
     return line_list_add(ctx->line_list, line);
   }
 
-  stack_push(ctx->register_stack, var->data.reg);
-  ctx->asmm->interger_register[var->data.reg] = true;
+
+  int reg = find_free_tmp_register(ctx->asmm);
+  if (reg == -1)
+  {
+    puts("Not allowed tmp register");
+    assert (0);
+  }
+
+  Line line = {
+    .is_label = false,
+    .data.instruction = {
+      .mnemonic = MN_LW,
+      .operand_amount = 2,
+      .first_operand = {
+        .operand_type = Reg,
+        .reg = reg
+      },
+      .second_operand = {
+        .operand_type = OnStack,
+        .stack = {
+          .offset = -var->data.offset,
+          .reg = s0
+        }
+      }
+    }
+  };
+
+  int err = line_list_add(ctx->line_list, line);
+  if (err)
+    return err;
+
+
+  stack_push(ctx->register_stack, reg);
+  ctx->asmm->interger_register[reg] = true;
 
   return 0;
 }
@@ -512,8 +581,8 @@ static int call(OpNode *node, GeneratorContext *ctx);
 
 static int call_or_indexer(OpNode *node, GeneratorContext *ctx)
 {
-  stack_push(ctx->register_stack, a0);
-  ctx->asmm->interger_register[a0] = true;
+  //stack_push(ctx->register_stack, a0);
+  //ctx->asmm->interger_register[a0] = true;
 
   call(node, ctx);
 
@@ -742,8 +811,8 @@ static int store_in_variable(OpNode *node, GeneratorContext *ctx)
     return 0;
   }
 
-  if (var->variable_type == V_VARIABLE)
-  {
+  //if (var->variable_type == V_VARIABLE)
+  //{
     Mnemonic mnemonic;
     if (var->type == INT_TYPE) 
       mnemonic = MN_SW;
@@ -777,27 +846,27 @@ static int store_in_variable(OpNode *node, GeneratorContext *ctx)
     ctx->asmm->interger_register[reg] = false;
 
     return line_list_add(ctx->line_list, line);
-  }
+  //}
   
-  int reg = stack_pop(ctx->register_stack);
-  Instruction instr = {
-    .mnemonic = MN_MV,
-    .operand_amount = 2,
-    .first_operand = {
-      .operand_type = Reg,
-      .reg = var->data.reg
-    },
-    .second_operand = {
-      .operand_type = Reg,
-      .reg = reg
-    }
-  };
-  Line line = {
-    .is_label = false,
-    .data.instruction = instr
-  };
+  //int reg = stack_pop(ctx->register_stack);
+  //Instruction instr = {
+    //.mnemonic = MN_MV,
+    //.operand_amount = 2,
+    //.first_operand = {
+      //.operand_type = Reg,
+      //.reg = var->data.reg
+    //},
+    //.second_operand = {
+      //.operand_type = Reg,
+      //.reg = reg
+    //}
+  //};
+  //Line line = {
+    //.is_label = false,
+    //.data.instruction = instr
+  //};
 
-  return line_list_add(ctx->line_list, line);
+  //return line_list_add(ctx->line_list, line);
   
 }
 
@@ -1087,7 +1156,7 @@ static int if_statment(ControlGraphNode *cgn_node, GeneratorContext *ctx)
   return 0;
 }
 
-int argument_counter = a0;
+int argument_counter = a1;
 int arguments(OpNode *node, GeneratorContext *ctx)
 {
 
@@ -1130,7 +1199,7 @@ int arguments(OpNode *node, GeneratorContext *ctx)
 
 int call(OpNode *node, GeneratorContext *ctx)
 {
-  argument_counter = a0;
+  argument_counter = a1;
   int err = arguments(node->children[1], ctx);
   if (err)
     return err;
@@ -1147,7 +1216,41 @@ int call(OpNode *node, GeneratorContext *ctx)
   };
   sprintf(call_line.data.instruction.first_operand.lable, "%s", node->children[0]->argument);
 
-  return line_list_add(ctx->line_list, call_line);
+  err = line_list_add(ctx->line_list, call_line);
+  if (err)
+    return err;
+
+  int reg = find_free_tmp_register(ctx->asmm);
+  if (reg == -1)
+  {
+    puts("Not allowed tmp register");
+    assert (0);
+  }
+
+  Line line = {
+    .is_label = false,
+    .data.instruction = {
+      .mnemonic = MN_MV,
+      .operand_amount = 2,
+      .first_operand = {
+        .operand_type = Reg,
+        .reg = reg
+      },
+      .second_operand = {
+        .operand_type = Reg,
+        .reg = a0
+      }
+    }
+  };
+
+  stack_push(ctx->register_stack,reg);
+  ctx->asmm->interger_register[reg] = true;
+
+  err = line_list_add(ctx->line_list, line);
+  if (err)
+    return err;
+
+  return 0;
 }
 
 int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)

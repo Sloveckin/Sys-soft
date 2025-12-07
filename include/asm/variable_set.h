@@ -19,7 +19,7 @@ typedef struct
   ProgramType type;
   char *name;
   VariableType variable_type;
-  union data
+  struct data
   {
     size_t offset;
     Register reg;
