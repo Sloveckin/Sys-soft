@@ -1,8 +1,25 @@
 #include "asm/instruction_list.h"
 
 #include <malloc.h>
+#include <stdio.h>
 
-int line_list_add(LineListNode *list, Line line)
+void init_listing(Listing *listing)
+{
+
+  listing->data.count = 0;
+  listing->text.count = 0;
+
+  sprintf(listing->data.name, "%s", ".data");
+  sprintf(listing->text.name, "%s", ".text");
+
+  listing->text.list = malloc(sizeof(LineListNode));
+  listing->text.list->line.is_empty = true;
+
+  listing->data.list = malloc(sizeof(LineListNode));
+  listing->data.list->line.is_empty = true;
+}
+
+static int line_list_add(LineListNode *list, Line line)
 {
   LineListNode *current = list;
   while (current->next != NULL)
@@ -32,7 +49,21 @@ void free_instruction_list(LineListNode *list)
   free(list);
 }
 
-void print_list(LineListNode *list, FILE *file)
+
+int listing_add_text(Listing *listing, Line line)
+{
+  listing->text.count++;
+  return line_list_add(listing->text.list, line);
+}
+
+int listing_add_data(Listing *listing, Line line)
+{
+  listing->data.count++;
+  return line_list_add(listing->data.list, line);
+}
+
+
+static void print_list(LineListNode *list, FILE *file)
 {
   LineListNode *current = list;
   while (current->next != NULL)
@@ -41,5 +72,17 @@ void print_list(LineListNode *list, FILE *file)
     current = current->next;
   }
   instruction_to_str(&current->line, file);
+}
+
+void listing_write(Listing *listing, FILE *file) 
+{
+  fprintf(file, ".section %s\n", listing->data.name);
+  if (listing->data.count != 0)
+    print_list(listing->data.list, file);
+
   fputs("\n", file);
+
+  fprintf(file, ".section %s\n", listing->text.name);
+  if (listing->text.count != 0)
+    print_list(listing->text.list, file);
 }

@@ -6,15 +6,31 @@
 
 #include "asm.h"
 
+#define SECTION_NAME_LENGTH 64
+
+
 typedef struct _LineListNode {
   Line line;
   struct _LineListNode *next;
 } LineListNode;
 
-int line_list_add(LineListNode *list, Line line);
+typedef struct Section {
+  char name[SECTION_NAME_LENGTH];
+  LineListNode *list;
+  size_t count;
+} Section;
 
-void free_instruction_list(LineListNode *list);
+typedef struct Listing {
+  Section text;
+  Section data;
+} Listing;
 
-void print_list(LineListNode *list, FILE *file);
+void init_listing(Listing *section);
+
+int listing_add_text(Listing *listing, Line line);
+
+int listing_add_data(Listing *listing, Line line);
+
+void listing_write(Listing *listing, FILE *file);
 
 #endif

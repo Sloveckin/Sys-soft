@@ -18,6 +18,9 @@ ProgramType typeRefTypeFromOpType(OpNodeType type)
   if (type == Bool || type == Bool_Type)
     return BOOL_TYPE;
 
+  if (type == String)
+    return STRING_TYPE;
+
   assert (0);
 }
 
@@ -30,6 +33,9 @@ size_t byte_amount(ProgramType type)
     return 4;
 
   if (type == LONG_TYPE) 
+    return 8;
+
+  if (type == STRING_TYPE)
     return 8;
 
   assert (0);

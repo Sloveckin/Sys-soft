@@ -88,6 +88,15 @@ void instruction_to_str(Line *line, FILE *file)
 
   Instruction instruction = line->data.instruction;
 
+  if (line->is_empty == true)
+    return;
+
+  if (line->is_label == false && instruction.mnemonic == MN_STRING)
+  {
+    fprintf(file, "%s: .string %s\n",  line->data.instruction.first_operand.lable, line->data.instruction.second_operand.lable);
+    return;
+  }
+
   if (line->is_label == false && instruction.mnemonic == MN_GLOBAL)
   {
     char buffer[128];
@@ -168,4 +177,15 @@ void print_tmp(Asm *asmm)
 
   for (size_t i = 28; i < 32; i++)
     printf("%s %d\n", register_to_string[i], asmm->interger_register[i]);
+}
+
+
+int find_free_s_register(Asm *assm)
+{
+  for (size_t i = 18; i <= 27; i++)
+  {
+    if (assm->interger_register[i] == false)
+      return i;
+  }
+  return -1;
 }

@@ -30,7 +30,9 @@ typedef enum
   MN_C_OR = 17,
   MN_CALL = 18,
   MN_GLOBAL = 19,
-  MN_SLT = 20
+  MN_SLT = 20,
+  MN_STRING = 21,
+  MN_LA = 22
 } Mnemonic;
 
 
@@ -111,6 +113,7 @@ typedef struct
 typedef struct 
 {
   bool is_label;
+  bool is_empty;
   union 
   {
     Instruction instruction;
@@ -127,6 +130,8 @@ typedef struct
 void init_asm(Asm *asmm);
 
 int find_free_tmp_register(Asm *assm);
+
+int find_free_s_register(Asm *assm);
 
 int find_busy_tmp_register(Asm *assm, int index);
 

@@ -266,6 +266,25 @@ OpNode *create_operation_tree_node(struct Node *node)
     return op;
   }
 
+  if (strcmp(node->type, "string") == 0)
+  {
+    OpNode *op = create_op_node();
+    op->type = String;
+    op->argument = malloc(strlen(node->text) * sizeof(char));
+    sprintf(op->argument, "%s", node->text);
+    return op;
+  }
+
+  if (strcmp(node->type, "Str") == 0)
+  {
+    OpNode *op = create_op_node();
+    op->type = String;
+    op->argument = malloc(strlen(node->text) * sizeof(char));
+    sprintf(op->argument, "\"%s\"", node->text);
+    return op;
+  }
+
+
   assert (0);
 }
 

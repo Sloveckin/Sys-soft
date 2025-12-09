@@ -33,7 +33,8 @@ typedef enum OperationTreeNodeType {
   Not = 25,
   CallOrIndexer = 26,
   ListExpr = 27,
-  Break = 28
+  Break = 28,
+  String = 29
 } OpNodeType;
 
 typedef struct OperationTreeNode {

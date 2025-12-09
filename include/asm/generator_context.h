@@ -9,7 +9,7 @@
 
 typedef struct GeneratorContext
 {
-  LineListNode *line_list;
+  Listing *listing;
   ErrorList *error_list;
   RegisterStack *register_stack;
   Asm *asmm;

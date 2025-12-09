@@ -558,6 +558,13 @@ char *get_text(struct Node *node)
     return text;
   }
 
+  if (strcmp(node->type, "Str") == 0)
+  {
+    char *text = malloc((strlen(node->text) + 3) * sizeof(char));
+    sprintf(text, "\"%s\"", node->text);
+    return text;
+  }
+
   assert (0);
 }
 

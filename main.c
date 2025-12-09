@@ -108,6 +108,9 @@ int main(int argc, char **argv)
         LineListNode *list = malloc(sizeof(LineListNode));;
         init_asm(&asmm);
 
+        Listing listing;
+        init_listing(&listing);
+
         ErrorList err_list;
         error_list_init(&err_list);
 
@@ -117,7 +120,7 @@ int main(int argc, char **argv)
         GeneratorContext generator_context = {
           .asmm = &asmm,
           .error_list = &err_list,
-          .line_list = list,
+          .listing = &listing,
           .label_gen = &label_generator,
         };
 
@@ -132,15 +135,16 @@ int main(int argc, char **argv)
           }
 
           error_list_free(&err_list);
-          free_instruction_list(list);
+          //free_instruction_list(list);
           return -1;
         }
 
+        listing_write(&listing, asm_file);
 
-        print_list(list, asm_file);
+        //print_list(list, asm_file);
         write_into_file(&context, argv[j], &func);
         error_list_free(&err_list);
-        free_instruction_list(list);
+        //free_instruction_list(list);
       }
       memset(functions, 0, sizeof(functions));
       yylex_destroy();
