@@ -33,4 +33,6 @@ int listing_add_data(Listing *listing, Line line);
 
 void listing_write(Listing *listing, FILE *file);
 
+void listing_free(Listing *listing);
+
 #endif

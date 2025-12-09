@@ -130,21 +130,19 @@ int main(int argc, char **argv)
         {
 
           for (size_t i = 0; i < err_list.size; i++)
-          {
             puts(err_list.data[i]->message);
-          }
 
           error_list_free(&err_list);
-          //free_instruction_list(list);
+          listing_free(&listing);
           return -1;
         }
 
         listing_write(&listing, asm_file);
 
-        //print_list(list, asm_file);
         write_into_file(&context, argv[j], &func);
         error_list_free(&err_list);
-        //free_instruction_list(list);
+        listing_free(&listing);
+
       }
       memset(functions, 0, sizeof(functions));
       yylex_destroy();

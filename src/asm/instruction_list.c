@@ -86,3 +86,9 @@ void listing_write(Listing *listing, FILE *file)
   if (listing->text.count != 0)
     print_list(listing->text.list, file);
 }
+
+void listing_free(Listing *listing)
+{
+  free_instruction_list(listing->data.list);
+  free_instruction_list(listing->text.list);
+}
