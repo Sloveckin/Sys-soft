@@ -17,6 +17,7 @@ typedef struct GeneratorContext
   Variables *vars;
   LabelGenerator *label_gen;
   Function *function;
+  Stack *stack;
 } GeneratorContext;
 
 #endif

@@ -2,6 +2,11 @@
 #define H_REGISTER_STACK
 
 #include "asm.h"
+
+typedef struct {
+  
+};
+
 typedef struct 
 {
   size_t top;

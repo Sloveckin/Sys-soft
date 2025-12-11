@@ -11,6 +11,7 @@
 #include "asm/variable_set.h"
 #include "asm/instruction_list.h"
 #include "asm/register_stack.h"
+#include "asm/stack.h"
 
 static size_t multiply_to_16(size_t amount)
 {
@@ -273,10 +274,10 @@ int start_generate_asm(GeneratorContext *gen_context, Function *foo)
   Variables vars;
   init_variables(&vars);
 
-  RegisterStack stack;  
-  init_register_stack(&stack);
+  RegisterStack reg_stack;  
+  init_register_stack(&reg_stack);
 
-  gen_context->register_stack = &stack;
+  gen_context->register_stack = &reg_stack;
   gen_context->vars = &vars;
 
   int err = 0;
@@ -295,17 +296,32 @@ int start_generate_asm(GeneratorContext *gen_context, Function *foo)
   gen_context->asmm->integer_on_stack[ra] = 8;
   gen_context->asmm->integer_on_stack[s0] = 0;
 
-  size_t variable_place = 0;
+  //size_t variable_place = 0;
+
+  size_t bytes_for_variables = 0;
 
   for (size_t i = 0; i < vars.size; i++)
   {
     //if (vars.variables[i]->variable_type == V_ARGUMENT)
     //  continue;
+
     int amount_of_bytes = byte_amount(vars.variables[i]->type);
-    variable_place += amount_of_bytes;
+    bytes_for_variables += amount_of_bytes;
+    //variable_place += amount_of_bytes;
     stack_frame += amount_of_bytes;
-    vars.variables[i]->data.offset = variable_place;
+    //vars.variables[i]->data.offset = variable_place;
   }
+
+  MemStack stack;
+  stack_init(&stack, stack_frame + bytes_for_variables);
+
+  for (size_t i = 0; i < vars.size; i++)
+  {
+    int amount_of_bytes = byte_amount(vars.variables[i]->type);
+    int place = find_free_space(&stack, amount_of_bytes);
+    vars.variables[i]->data.offset = place;
+  }
+
 
   stack_frame = multiply_to_16(stack_frame);
 
@@ -602,11 +618,7 @@ static int call(OpNode *node, GeneratorContext *ctx);
 
 static int call_or_indexer(OpNode *node, GeneratorContext *ctx)
 {
-  //stack_push(ctx->register_stack, a0);
-  //ctx->asmm->interger_register[a0] = true;
-
   call(node, ctx);
-
   return 0;
 }
 
