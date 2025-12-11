@@ -1,6 +1,7 @@
 #ifndef H_GENERATOR_CONTEXT
 #define H_GENERATOR_CONTEXT
 
+#include "function.h"
 #include "instruction_list.h"
 #include "error_list.h"
 #include "label_generator.h"
@@ -15,6 +16,7 @@ typedef struct GeneratorContext
   Asm *asmm;
   Variables *vars;
   LabelGenerator *label_gen;
+  Function *function;
 } GeneratorContext;
 
 #endif

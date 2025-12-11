@@ -31,7 +31,7 @@ int listing_add_text(Listing *listing, Line line);
 
 int listing_add_data(Listing *listing, Line line);
 
-void listing_write(Listing *listing, FILE *file);
+void listing_write(Listing *listing, FILE *file, bool print_section);
 
 void listing_free(Listing *listing);
 

@@ -74,9 +74,12 @@ int main(int argc, char **argv)
       convert_to_dgml(output, root);
       #endif
 
-      struct Node *functions[max_functions];
-      memset(functions, 0, max_functions * sizeof(struct Node *));
-      find_func_def(root, functions);
+      struct Node *functions_node[max_functions];
+      memset(functions_node, 0, max_functions * sizeof(struct Node *));
+      find_func_def(root, functions_node);
+
+      Function *functions[max_functions];
+
 
       char *asm_file_name = malloc(strlen(argv[j]) + 2);
       if (asm_file_name == NULL)
@@ -93,16 +96,18 @@ int main(int argc, char **argv)
 
       for (size_t i = 0; i < max_functions; i++)
       {
-        if (functions[i] == NULL)
+        if (functions_node[i] == NULL)
           break;
 
         Contex context;
         init_context(&context);
 
         Function func = {
-          .signature = init_signature(functions[i]->children[0]),
-          .control_graph = foo(&context, functions[i]->children[1]),
+          .signature = init_signature(functions_node[i]->children[0]),
+          .control_graph = foo(&context, functions_node[i]->children[1]),
         };
+
+        functions[i] = &func;
 
         Asm asmm;
         LineListNode *list = malloc(sizeof(LineListNode));;
@@ -137,12 +142,11 @@ int main(int argc, char **argv)
           return -1;
         }
 
-        listing_write(&listing, asm_file);
+        listing_write(&listing, asm_file, i == 0);
 
         write_into_file(&context, argv[j], &func);
         error_list_free(&err_list);
-        listing_free(&listing);
-
+        //listing_free(&listing);
       }
       memset(functions, 0, sizeof(functions));
       yylex_destroy();

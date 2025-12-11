@@ -74,15 +74,19 @@ static void print_list(LineListNode *list, FILE *file)
   instruction_to_str(&current->line, file);
 }
 
-void listing_write(Listing *listing, FILE *file) 
+void listing_write(Listing *listing, FILE *file, bool print_section) 
 {
-  fprintf(file, ".section %s\n", listing->data.name);
+  if (print_section)
+    fprintf(file, ".section %s\n", listing->data.name);
+
   if (listing->data.count != 0)
     print_list(listing->data.list, file);
 
   fputs("\n", file);
 
-  fprintf(file, ".section %s\n", listing->text.name);
+  if (print_section)
+    fprintf(file, ".section %s\n", listing->text.name);
+
   if (listing->text.count != 0)
     print_list(listing->text.list, file);
 }
