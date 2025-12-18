@@ -58,8 +58,10 @@ const char *const mnemonic_to_string[] = {
   "call",
   ".global",
   "slt",
-  "string",
-  "la"
+  "string", // not instruction)))
+  "la",
+  "blt",
+  "bge"
 };
 
 

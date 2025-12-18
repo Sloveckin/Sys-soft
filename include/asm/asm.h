@@ -32,7 +32,9 @@ typedef enum
   MN_GLOBAL = 19,
   MN_SLT = 20,
   MN_STRING = 21,
-  MN_LA = 22
+  MN_LA = 22,
+  MN_BLT = 23,
+  MN_BGE = 24
 } Mnemonic;
 
 

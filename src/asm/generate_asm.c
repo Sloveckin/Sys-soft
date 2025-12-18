@@ -714,46 +714,39 @@ static int less_more(OpNode *node, GeneratorContext *ctx)
   int reg2 = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
   int reg1 = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
 
-  Mnemonic mnemonic = MN_SLT;
-
-  int first_reg;
-  int second_reg;
-
-  if (node->type == Less) {
-    first_reg = reg1;
-    second_reg = reg2;
-  }
-  else {
-    first_reg = reg2;
-    second_reg = reg1;
-  }
+  Mnemonic mnemonic;
+  if (node->type == Equals)
+    mnemonic = MN_BEQ;
+  else if (node->type == Less)
+    mnemonic = MN_BLT;
+  else if (node->type == More)
+    mnemonic = MN_BGE;
+  else
+    assert (0);
 
   Instruction instr = {
     .mnemonic = mnemonic,
     .operand_amount = 3,
     .first_operand = {
       .operand_type = Reg,
-      .reg = second_reg,
+      .reg = reg1
     },
     .second_operand = {
       .operand_type = Reg,
-      .reg = first_reg,
+      .reg = reg2,
     },
     .third_operand = {
-      .operand_type = Reg,
-      .reg = second_reg,
-    }
+      .operand_type = OP_Label
+    } 
   };
-  Line line = {
-    .is_label = false,
-    .data.instruction = instr
-  };
+  strcpy(instr.third_operand.lable, ctx->label_gen->true_block);
+  Line line = { .data.instruction = instr};
 
-  ctx->asmm->interger_register[first_reg] = false;
-  stack_push(ctx->register_stack, second_reg);
-    
-  //return line_list_add(ctx->line_list, line);
-  return listing_add_text(ctx->listing, line);
+  err = listing_add_text(ctx->listing, line);
+  if (err)
+    return err;
+
+  return 0;
 }
 
 static int binary_operation_without_storing(OpNode *node, GeneratorContext *ctx)
@@ -885,6 +878,10 @@ static int load_string(OpNode* node, GeneratorContext *ctx)
   return 0;
 }
 
+static int eq(OpNode *node, GeneratorContext *ctx) {
+  
+}
+
 static int load_from(OpNode *node, GeneratorContext *ctx, bool change_register)
 {
   if (node->type == CONST)
@@ -900,10 +897,12 @@ static int load_from(OpNode *node, GeneratorContext *ctx, bool change_register)
     else 
       return binary_operation_without_storing(node, ctx);
   }
-  else if (node->type == Less || node->type == More)
+  else if (node->type == Equals || node->type == Less || node->type == More)
     return less_more(node, ctx);
   else if (node->type == CallOrIndexer)
     return call_or_indexer(node, ctx);
+  else if (node->type == Equals)
+    return eq(node, ctx);
   else if (node->type == String)
     return load_string(node, ctx);
 
@@ -1214,22 +1213,6 @@ static int if_statment(ControlGraphNode *cgn_node, GeneratorContext *ctx)
   update_labels(ctx->label_gen);
 
   int err = load_from(node, ctx, true);
-  if (err)
-    return err;
-
-  int reg_for_one = 0;
-  Line load_one = create_true(ctx, &reg_for_one);
-
-  //err = line_list_add(ctx->line_list, load_one);
-  listing_add_text(ctx->listing, load_one);
-  if (err)
-    return err;
-
-  int reg_with_cond = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
-  Line beq = create_beq(reg_for_one, reg_with_cond, ctx);
-
-  //err = line_list_add(ctx->line_list, beq);
-  listing_add_text(ctx->listing, beq);
   if (err)
     return err;
 
