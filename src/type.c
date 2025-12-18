@@ -21,6 +21,9 @@ ProgramType typeRefTypeFromOpType(OpNodeType type)
   if (type == String)
     return STRING_TYPE;
 
+  if (type == Array)
+    return ARRAY_TYPE;
+
   assert (0);
 }
 
@@ -36,6 +39,9 @@ size_t byte_amount(ProgramType type)
     return 8;
 
   if (type == STRING_TYPE)
+    return 8;
+
+  if (type == ARRAY_TYPE)
     return 8;
 
   assert (0);

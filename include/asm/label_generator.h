@@ -8,6 +8,7 @@
 typedef struct LabelGenerator
 {
   size_t if_count;
+  size_t string_count;
   char true_block[MAX_LABEL_NAME_LENGTH];
   char false_block[MAX_LABEL_NAME_LENGTH];
   char after_block[MAX_LABEL_NAME_LENGTH];
@@ -19,6 +20,7 @@ void init_label_generator(LabelGenerator *gen);
 
 void update_labels(LabelGenerator *gen);
 
+void update_string_label(LabelGenerator *gen);
 
 
 #endif

@@ -469,6 +469,14 @@ ControlGraphNode *foo(Contex *context, struct Node *node)
     return cgn;
   }
 
+  if (strcmp(node->type, "Array") == 0)
+  {
+    ControlGraphNode *cgn = create_control_node(context);
+    cgn->text = malloc(5 * sizeof(char));
+    sprintf(cgn->text, "array");
+    return cgn;
+  }
+
   assert (0);
 }
 

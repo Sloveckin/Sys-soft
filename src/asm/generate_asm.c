@@ -242,10 +242,20 @@ int push_args_on_stack(GeneratorContext *ctx)
     if (var->variable_type != V_ARGUMENT)
       continue;
 
+    Mnemonic store_mnemonic;
+    if (var->type == INT_TYPE)
+      store_mnemonic = MN_SW;
+    else if (var->type == BYTE_TYPE || var->type == BOOL_TYPE)
+      store_mnemonic = MN_SB;
+    else if (var->type == LONG_TYPE || var->type == STRING_TYPE)
+      store_mnemonic = MN_SD;
+    else
+      assert(0);
+
     Line line = {
       .is_label = false,
       .data.instruction = {
-        .mnemonic = MN_SW,
+        .mnemonic = store_mnemonic,
         .operand_amount = 2,
         .first_operand = {
           .operand_type = Reg,
@@ -314,6 +324,8 @@ int start_generate_asm(GeneratorContext *gen_context, Function *foo)
 
   MemStack stack;
   stack_init(&stack, stack_frame + bytes_for_variables);
+
+  gen_context->stack = &stack;
 
   for (size_t i = 0; i < vars.size; i++)
   {
@@ -637,8 +649,8 @@ static int binary_operation(OpNode *node, GeneratorContext *ctx)
     if (err)
       return err;
 
-    int reg2 = stack_pop(ctx->register_stack);
-    int reg1 = stack_pop(ctx->register_stack);
+    int reg2 = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
+    int reg1 = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
 
     Mnemonic mnemonic;
     if (node->type == ADD)
@@ -683,7 +695,7 @@ static int binary_operation(OpNode *node, GeneratorContext *ctx)
     stack_push(ctx->register_stack, reg1);
     
     //return line_list_add(ctx->line_list, line);
-    listing_add_text(ctx->listing, line);
+    return listing_add_text(ctx->listing, line);
 }
 
 static int less_more(OpNode *node, GeneratorContext *ctx)
@@ -692,32 +704,44 @@ static int less_more(OpNode *node, GeneratorContext *ctx)
   OpNode *right = node->children[1];
 
   int err = load_from(left, ctx, true);
+  if (err)
+    return err;
 
   err = load_from(right, ctx, true);
+  if (err)
+    return err;
 
-  int reg2 = stack_pop(ctx->register_stack);
-  int reg1 = stack_pop(ctx->register_stack);
+  int reg2 = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
+  int reg1 = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
 
-  Mnemonic mnemonic;
-  if (node->type == Less)
-    mnemonic = MN_SLT;
-  else
-    assert (0);
+  Mnemonic mnemonic = MN_SLT;
+
+  int first_reg;
+  int second_reg;
+
+  if (node->type == Less) {
+    first_reg = reg1;
+    second_reg = reg2;
+  }
+  else {
+    first_reg = reg2;
+    second_reg = reg1;
+  }
 
   Instruction instr = {
     .mnemonic = mnemonic,
     .operand_amount = 3,
     .first_operand = {
       .operand_type = Reg,
-      .reg = reg2,
+      .reg = second_reg,
     },
     .second_operand = {
       .operand_type = Reg,
-      .reg = reg1,
+      .reg = first_reg,
     },
     .third_operand = {
       .operand_type = Reg,
-      .reg = reg2,
+      .reg = second_reg,
     }
   };
   Line line = {
@@ -725,8 +749,8 @@ static int less_more(OpNode *node, GeneratorContext *ctx)
     .data.instruction = instr
   };
 
-  ctx->asmm->interger_register[reg1] = false;
-  stack_push(ctx->register_stack, reg2);
+  ctx->asmm->interger_register[first_reg] = false;
+  stack_push(ctx->register_stack, second_reg);
     
   //return line_list_add(ctx->line_list, line);
   return listing_add_text(ctx->listing, line);
@@ -745,8 +769,8 @@ static int binary_operation_without_storing(OpNode *node, GeneratorContext *ctx)
     if (err)
       return err;
 
-    int reg2 = stack_pop(ctx->register_stack);
-    int reg1 = stack_pop(ctx->register_stack);
+    int reg2 = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
+    int reg1 = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
 
 
     int reg = find_free_tmp_register(ctx->asmm);
@@ -805,7 +829,7 @@ static int binary_operation_without_storing(OpNode *node, GeneratorContext *ctx)
 
 static int load_string(OpNode* node, GeneratorContext *ctx) 
 {
-  update_labels(ctx->label_gen);
+  update_string_label(ctx->label_gen);
 
   Line line = {
     .is_label = false,
@@ -876,7 +900,7 @@ static int load_from(OpNode *node, GeneratorContext *ctx, bool change_register)
     else 
       return binary_operation_without_storing(node, ctx);
   }
-  else if (node->type == Less)
+  else if (node->type == Less || node->type == More)
     return less_more(node, ctx);
   else if (node->type == CallOrIndexer)
     return call_or_indexer(node, ctx);
@@ -919,7 +943,7 @@ static int store_in_variable(OpNode *node, GeneratorContext *ctx)
     else if (var->type == STRING_TYPE)
       mnemonic = MN_SD;
 
-    int reg = stack_pop(ctx->register_stack);
+    int reg = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
 
     Instruction instruction = {
       .mnemonic = mnemonic,
@@ -1121,7 +1145,7 @@ int cycle(ControlGraphNode *cgn_node, GeneratorContext *ctx)
   if (err)
     return err;
 
-  int reg_with_cond = stack_pop(ctx->register_stack);
+  int reg_with_cond = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
   Line beq = create_b(node, reg_for_one, reg_with_cond, ctx); //create_beq(reg_for_one, reg_with_cond, ctx);
 
   //err = line_list_add(ctx->line_list, beq);
@@ -1201,7 +1225,7 @@ static int if_statment(ControlGraphNode *cgn_node, GeneratorContext *ctx)
   if (err)
     return err;
 
-  int reg_with_cond = stack_pop(ctx->register_stack);
+  int reg_with_cond = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
   Line beq = create_beq(reg_for_one, reg_with_cond, ctx);
 
   //err = line_list_add(ctx->line_list, beq);
@@ -1287,7 +1311,7 @@ int arguments(OpNode *node, GeneratorContext *ctx)
      if (err)
       return err;
     
-    int reg_with_value = stack_pop(ctx->register_stack);
+    int reg_with_value = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
 
     Line line = {
       .is_label = false,
@@ -1334,14 +1358,15 @@ int call(OpNode *node, GeneratorContext *ctx)
   if (err)
     return err;
 
+  // Move return value a0 into a free tmp register and push for expression usage
   int reg = find_free_s_register(ctx->asmm);
   if (reg == -1)
   {
-    puts("Not allowed tmp register");
-    assert (0);
+    puts("Free tmp register not found");
+    assert(0);
   }
 
-  Line line = {
+  Line mv_ret = {
     .is_label = false,
     .data.instruction = {
       .mnemonic = MN_MV,
@@ -1357,13 +1382,12 @@ int call(OpNode *node, GeneratorContext *ctx)
     }
   };
 
-  stack_push(ctx->register_stack, reg);
-  ctx->asmm->interger_register[reg] = true;
-
-  //err = line_list_add(ctx->line_list, line);
-  err = listing_add_text(ctx->listing, line);
+  err = listing_add_text(ctx->listing, mv_ret);
   if (err)
     return err;
+
+  stack_push(ctx->register_stack, reg);
+  ctx->asmm->interger_register[reg] = true;
 
   return 0;
 }
@@ -1460,7 +1484,7 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
       if (err)
         return err;
 
-      int reg = stack_pop(ctx->register_stack);
+      int reg = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
 
       Instruction instr = {
       .mnemonic = MN_MV,

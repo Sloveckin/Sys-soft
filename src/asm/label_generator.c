@@ -5,6 +5,7 @@
 void init_label_generator(LabelGenerator *gen)
 {
   gen->if_count = 0;
+  gen->string_count = 0;
 }
 
 void update_labels(LabelGenerator *gen)
@@ -14,5 +15,9 @@ void update_labels(LabelGenerator *gen)
   sprintf(gen->false_block, "false_block_%lu", gen->if_count);
   sprintf(gen->after_block, "after_block_%lu", gen->if_count);
   sprintf(gen->cond_block, "cond_block_%lu", gen->if_count);
-  sprintf(gen->string_name, "str%lu", gen->if_count);
+}
+
+void update_string_label(LabelGenerator *gen) {
+  gen->string_count++;
+  sprintf(gen->string_name, "str%lu", gen->string_count);
 }

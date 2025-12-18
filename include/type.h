@@ -16,7 +16,8 @@ typedef enum
   BYTE_TYPE = 6,
   STRING_TYPE = 7,
   BOOL_TYPE = 8,
-  CUSTOM_TYPE = 9
+  CUSTOM_TYPE = 9,
+  ARRAY_TYPE = 10
 } ProgramType;
 
 extern const char *const ProgramType_to_str[];

@@ -1,6 +1,7 @@
 #ifndef H_GENERATOR_CONTEXT
 #define H_GENERATOR_CONTEXT
 
+#include "asm/stack.h"
 #include "function.h"
 #include "instruction_list.h"
 #include "error_list.h"
@@ -17,7 +18,7 @@ typedef struct GeneratorContext
   Variables *vars;
   LabelGenerator *label_gen;
   Function *function;
-  Stack *stack;
+  MemStack *stack;
 } GeneratorContext;
 
 #endif

@@ -285,6 +285,16 @@ OpNode *create_operation_tree_node(struct Node *node)
   }
 
 
+  if (strcmp(node->type, "Array") == 0)
+  {
+    OpNode *op = create_op_node();
+    op->type = Array;
+    op->argument = malloc(strlen(node->text) * sizeof(char));
+    sprintf(op->argument, "%s", node->text);
+    return op;
+  }
+
+
   assert (0);
 }
 
