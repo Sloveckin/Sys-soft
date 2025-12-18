@@ -813,6 +813,7 @@ static int binary_operation_without_storing(OpNode *node, GeneratorContext *ctx)
     };
 
     ctx->asmm->interger_register[reg2] = false;
+    ctx->asmm->interger_register[reg1] = false;
     ctx->asmm->interger_register[reg] = true;
     stack_push(ctx->register_stack, reg);
     
@@ -966,30 +967,7 @@ static int store_in_variable(OpNode *node, GeneratorContext *ctx)
 
     ctx->asmm->interger_register[reg] = false;
 
-    //return line_list_add(ctx->line_list, line);
     return listing_add_text(ctx->listing, line);
-  //}
-  
-  //int reg = stack_pop(ctx->register_stack);
-  //Instruction instr = {
-    //.mnemonic = MN_MV,
-    //.operand_amount = 2,
-    //.first_operand = {
-      //.operand_type = Reg,
-      //.reg = var->data.reg
-    //},
-    //.second_operand = {
-      //.operand_type = Reg,
-      //.reg = reg
-    //}
-  //};
-  //Line line = {
-    //.is_label = false,
-    //.data.instruction = instr
-  //};
-
-  //return line_list_add(ctx->line_list, line);
-  
 }
 
 static int assigment(OpNode *node, GeneratorContext *ctx)
@@ -1010,7 +988,7 @@ static int assigment(OpNode *node, GeneratorContext *ctx)
     if (!found)
       return 0;
 
-    ProgramType right_type = find_program_type(ctx->vars, right->argument, &found);
+    /*ProgramType right_type = find_program_type(ctx->vars, right->argument, &found);
     if (!found)
       return 0;
 
@@ -1027,7 +1005,7 @@ static int assigment(OpNode *node, GeneratorContext *ctx)
       type_not_equals->data.not_expeted_type.was = right_type;
 
       error_list_add(ctx->error_list, type_not_equals);
-    }
+    }*/
 
    return 0;
 }
@@ -1381,22 +1359,17 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
   if (cgn_node == NULL)
     return 0;
 
-  if (cgn_node->generate_asm)
+  if (cgn_node->generate_asm && cgn_node->parent_amount != 2)
     return 0;
 
   if (cgn_node->parent_amount == 2)
   {
     
     if (cgn_node->parent_amount == 2 && cgn_node->cond != NULL)
-    {
       return cycle(cgn_node, ctx);
-    }
 
     // Create after if block
     cgn_node->parent_accum++;
-
-    if (cgn_node->parent_accum != 2)
-      return 0;
 
     Line jump_to_end_block = {
       .is_label = false,
