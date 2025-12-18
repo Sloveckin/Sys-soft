@@ -1010,24 +1010,24 @@ static int assigment(OpNode *node, GeneratorContext *ctx)
     if (!found)
       return 0;
 
-    //ProgramType right_type = find_program_type(ctx->vars, right->argument, &found);
-    //if (!found)
-      //return 0;
+    ProgramType right_type = find_program_type(ctx->vars, right->argument, &found);
+    if (!found)
+      return 0;
 
-    //if (left_type != right_type)
-    //{
+    if (left_type != right_type)
+    {
 
-      //Error *type_not_equals = malloc(sizeof(Error));
-      //if (!type_not_equals)
-        //return -1;
+      Error *type_not_equals = malloc(sizeof(Error));
+      if (!type_not_equals)
+        return -1;
 
-      //type_not_equals->error_type = TYPE_NOT_EQUALS;
-      //sprintf(type_not_equals->message, "Type not equals: expected %s, but found %s", ProgramType_to_str[left_type], ProgramType_to_str[right_type]);
-      //type_not_equals->data.not_expeted_type.expected = left_type;
-      //type_not_equals->data.not_expeted_type.was = right_type;
+      type_not_equals->error_type = TYPE_NOT_EQUALS;
+      sprintf(type_not_equals->message, "Type not equals: expected %s, but found %s", ProgramType_to_str[left_type], ProgramType_to_str[right_type]);
+      type_not_equals->data.not_expeted_type.expected = left_type;
+      type_not_equals->data.not_expeted_type.was = right_type;
 
-      //error_list_add(ctx->error_list, type_not_equals);
-    //}
+      error_list_add(ctx->error_list, type_not_equals);
+    }
 
    return 0;
 }
