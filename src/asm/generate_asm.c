@@ -134,6 +134,35 @@ static int preamble(Asm *asmm, Function *foo, int stack_frame, GeneratorContext 
 
 static int epilog(Asm *asmm, LineListNode *list, int stack_frame, GeneratorContext *ctx)
 {
+
+  for (size_t i = 18 ; i <= 27; i++) {
+    if (asmm->integer_on_stack[i] != 0) {
+      Line line = {
+        .is_label = false,
+        .data.instruction = {
+          .mnemonic = MN_LD,
+          .operand_amount = 2,
+          .first_operand = {
+            .operand_type = Reg,
+            .reg = i
+          },
+          .second_operand = {
+            .operand_type = OnStack,
+            .stack = {
+              .reg = s0,
+              .offset = asmm->integer_on_stack[i]
+            }
+          }
+        }
+      };
+
+      int err = listing_add_text(ctx->listing, line);
+      if (err)
+        return err;
+    }
+  }
+
+
   int err = 0;
   //printf("ld ra, %d(sp)\n", asmm->integer_on_stack[ra]);
   Instruction instr1 = {
@@ -302,24 +331,18 @@ int start_generate_asm(GeneratorContext *gen_context, Function *foo)
     return -1;
   }
 
-  size_t stack_frame = 32;
+  size_t stack_frame = 80;
   gen_context->asmm->integer_on_stack[ra] = 8;
   gen_context->asmm->integer_on_stack[s0] = 0;
 
-  //size_t variable_place = 0;
 
   size_t bytes_for_variables = 0;
 
   for (size_t i = 0; i < vars.size; i++)
   {
-    //if (vars.variables[i]->variable_type == V_ARGUMENT)
-    //  continue;
-
     int amount_of_bytes = byte_amount(vars.variables[i]->type);
     bytes_for_variables += amount_of_bytes;
-    //variable_place += amount_of_bytes;
     stack_frame += amount_of_bytes;
-    //vars.variables[i]->data.offset = variable_place;
   }
 
   MemStack stack;
@@ -370,6 +393,8 @@ int start_generate_asm(GeneratorContext *gen_context, Function *foo)
   {
     gen_context->listing->text.list->line = label;
   }
+
+
 
   preamble(gen_context->asmm, foo, stack_frame, gen_context);
 
@@ -1303,6 +1328,31 @@ int call(OpNode *node, GeneratorContext *ctx)
     assert(0);
   }
 
+  size_t offset = find_free_space(ctx->stack, 8);
+
+  Line save_s_register = {
+    .is_label = false,
+    .data.instruction = {
+      .mnemonic = MN_SD,
+      .operand_amount = 2,
+      .first_operand = {
+        .operand_type = Reg,
+        .reg = reg
+      },
+      .second_operand = {
+        .operand_type = OnStack,
+        .stack = {
+          .offset = -offset,
+          .reg = s0,
+        }
+      }
+    }
+  };
+
+  err = listing_insert_date(ctx->listing, save_s_register, 4);
+  if (err) 
+    return err;
+
   Line mv_ret = {
     .is_label = false,
     .data.instruction = {
@@ -1318,6 +1368,8 @@ int call(OpNode *node, GeneratorContext *ctx)
       }
     }
   };
+
+  ctx->asmm->integer_on_stack[reg] = -offset;
 
   err = listing_add_text(ctx->listing, mv_ret);
   if (err)

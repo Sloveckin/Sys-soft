@@ -19,6 +19,29 @@ void init_listing(Listing *listing)
   listing->data.list->line.is_empty = true;
 }
 
+
+int listing_insert_date(Listing *listing, Line line, size_t index)
+{
+  size_t i = 0;
+  LineListNode *current = listing->text.list;
+  while (i != index) {
+    current = current->next;
+    i++;
+  }
+
+  LineListNode *new_node = malloc(sizeof(LineListNode));
+  if (!new_node)
+    return -1;
+
+  new_node->line = line;
+
+  LineListNode *third = current->next;
+  current->next = new_node;
+  new_node->next = third;
+
+  return 0;
+}
+
 static int line_list_add(LineListNode *list, Line line)
 {
   LineListNode *current = list;
