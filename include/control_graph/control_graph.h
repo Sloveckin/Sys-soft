@@ -32,6 +32,7 @@ typedef struct ControlGraphNode
   size_t id;
   char *text;
 
+  size_t need_to_unlock;
   size_t parent_amount;
   size_t parent_accum;
 

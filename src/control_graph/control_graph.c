@@ -51,7 +51,8 @@ static ControlGraphNode *create_control_node(Contex *context)
   ControlGraphNode *node = malloc(sizeof(ControlGraphNode));
   node->id = -1;
   node->visited = false;
-  node->parent_amount = 0;
+  node->parent_amount = 1;
+  node->need_to_unlock = 1;
   node->connect_to_end = false;
   node->end = NULL;
   node->def = NULL;
@@ -160,6 +161,7 @@ static ControlGraphNode *if_condition(Contex *context, struct Node *node)
 
     body_last->def = end;
 
+    end->need_to_unlock = 2;
     end->parent_amount = 2;
 
     return cond;
@@ -188,6 +190,7 @@ static ControlGraphNode *while_cycle(Contex *context, struct Node* node)
 
   last_stats->def = cond;
 
+  cond->need_to_unlock = 1;
   cond->parent_amount = 2;
 
   return cond;

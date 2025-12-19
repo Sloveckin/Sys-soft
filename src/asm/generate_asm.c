@@ -1057,41 +1057,10 @@ static Line create_true(GeneratorContext *ctx, int *reg_for_one)
      }
   };
 
+  stack_push(ctx->register_stack, reg);
+
   *reg_for_one = reg;
   return load_one;
-}
-
-static Line create_beq(int reg1, int reg2, GeneratorContext *ctx)
-{
-  Line beq = {
-    .is_label = false,
-    .data.instruction = {
-    .mnemonic = MN_BEQ,
-      .operand_amount = 3,
-      .first_operand = {
-        .operand_type = Reg,
-        .reg = reg1,
-      },
-      .second_operand = {
-        .operand_type = Reg,
-        .reg = reg2 
-      },
-      .third_operand = {
-        .operand_type = OP_Label,
-      }
-      }
-    };
-    sprintf(beq.data.instruction.third_operand.lable, "%s", ctx->label_gen->true_block); 
-
-  return beq;
-}
-
-static Line create_b(OpNode *node, int reg1, int reg2, GeneratorContext *ctx)
-{
-  if (node->type == Bool)
-    return create_beq(reg1, reg2, ctx);
-
-  assert (0);
 }
 
 static Line jump_to_false_block(GeneratorContext *ctx)
@@ -1131,7 +1100,7 @@ int cycle(ControlGraphNode *cgn_node, GeneratorContext *ctx)
   if (err)
     return err;
 
-  int reg_for_one = 0;
+  /*int reg_for_one = 0;
   Line load_one = create_true(ctx, &reg_for_one);
 
   err = listing_add_text(ctx->listing, load_one);
@@ -1139,11 +1108,11 @@ int cycle(ControlGraphNode *cgn_node, GeneratorContext *ctx)
     return err;
 
   int reg_with_cond = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
-  Line beq = create_b(node, reg_for_one, reg_with_cond, ctx); //create_beq(reg_for_one, reg_with_cond, ctx);
+  Line beq = create_b(node, reg_for_one, reg_with_cond, ctx); //create_beq(reg_for_one, reg_with_cond, ctx); 
 
   err = listing_add_text(ctx->listing, beq);
   if (err)
-    return err;
+    return err;*/
 
   Line j_to_false_block = jump_to_false_block(ctx);
   
@@ -1185,7 +1154,7 @@ int cycle(ControlGraphNode *cgn_node, GeneratorContext *ctx)
   };
   sprintf(block_false.data.label.buffer, "%s", ctx->label_gen->false_block);
 
-  err = listing_add_text(ctx->listing, j_to_cond_block);
+  err = listing_add_text(ctx->listing, block_false);
   if (err)
     return err;
   
@@ -1381,26 +1350,8 @@ int call(OpNode *node, GeneratorContext *ctx)
   return 0;
 }
 
-int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
+static int after_if(ControlGraphNode *cgn_node, GeneratorContext *ctx)
 {
-
-  if (cgn_node == NULL)
-    return 0;
-
-  if (cgn_node->generate_asm && cgn_node->parent_amount != 2)
-    return 0;
-
-  cgn_node->parent_accum++;
-
-  if (cgn_node->parent_amount == 2)
-  {
-    if (cgn_node->parent_accum == cgn_node->parent_amount)
-    {
-    
-      if (cgn_node->parent_amount == 2 && cgn_node->cond != NULL)
-        return cycle(cgn_node, ctx);
-
-      // Create after if block
 
       Line jump_to_end_block = {
         .is_label = false,
@@ -1435,6 +1386,58 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
         return err;
 
       return 0;
+}
+
+static int create_return(ControlGraphNode *cgn_node, GeneratorContext *ctx)
+{
+
+        int err = load_from(cgn_node->operation_node, ctx, true);
+        if (err)
+          return err;
+
+        int reg = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
+
+        Instruction instr = {
+        .mnemonic = MN_MV,
+        .operand_amount = 2,
+        .first_operand = {
+          .operand_type = Reg,
+          .reg = a0,
+        },
+        .second_operand = {
+          .operand_type = Reg,
+          .reg = reg
+        }
+        };
+        Line line = {
+          .is_label = false,
+          .data.instruction = instr
+        };
+
+        return listing_add_text(ctx->listing, line);
+}
+
+
+int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
+{
+
+  /*if (cgn_node == NULL)
+    return 0;
+
+  if (cgn_node->generate_asm && cgn_node->parent_amount != 2)
+    return 0;
+
+  cgn_node->parent_accum++;
+
+  if (cgn_node->parent_amount == 2 && cgn_node->cond != NULL)
+        return cycle(cgn_node, ctx);
+
+  if (cgn_node->parent_amount == 2)
+  {
+    if (cgn_node->parent_accum == cgn_node->parent_amount)
+    {
+      // Create after if block
+      return after_if(cgn_node, ctx);
     }
   }
   else 
@@ -1467,36 +1470,10 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
       }
 
       if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV || node->type == Load || node->type == CONST)
-      {
-        int err = load_from(node, ctx, true);
-        if (err)
-          return err;
-
-        int reg = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
-
-        Instruction instr = {
-        .mnemonic = MN_MV,
-        .operand_amount = 2,
-        .first_operand = {
-          .operand_type = Reg,
-          .reg = a0,
-        },
-        .second_operand = {
-          .operand_type = Reg,
-          .reg = reg
-        }
-        };
-        Line line = {
-          .is_label = false,
-          .data.instruction = instr
-        };
-
-        return listing_add_text(ctx->listing, line);
-      }
+        return create_return(cgn_node, ctx);
 
       if (cgn_node->def != NULL)
         return generate_asm(cgn_node->def, ctx);
-
 
       return 0;
     }
@@ -1505,6 +1482,60 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
       return if_statment(cgn_node, ctx);
     }
 
-    return 0;
+    return 0;*/
+
+    if (cgn_node == NULL)
+      return 0;
+
+
+    cgn_node->generate_asm = true;
+    cgn_node->parent_accum++;
+
+    if (cgn_node->parent_accum != cgn_node->need_to_unlock)
+      return 0;
+
+    OpNode* node = cgn_node->operation_node;
+
+    if (cgn_node->cond == NULL && node != NULL)
+    {
+
+      if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV || node->type == Load || node->type == CONST)
+        return create_return(cgn_node, ctx);
+
+      if (node->type == Assigment)
+      {
+        int err = assigment(node, ctx);
+        if (err)
+          return err;
+      }
+
+      if (node->type == CallOrIndexer)
+      {
+        int err = call_or_indexer(node, ctx);
+        if (err)
+          return err;
+      }
+      return generate_asm(cgn_node->def, ctx);
+    } 
+
+    if (cgn_node->cond != NULL && cgn_node->parent_amount == 1)
+      return if_statment(cgn_node, ctx);
+
+    if (cgn_node->cond != NULL && cgn_node->parent_amount == 2)
+      return cycle(cgn_node, ctx);
+
+    if (cgn_node->need_to_unlock == cgn_node->parent_accum)
+    {
+      if (cgn_node->need_to_unlock == 2)
+        return after_if(cgn_node, ctx);
+      else
+        assert (0);
+    } 
+    else
+    {
+      return 0;
+    }
+
+    assert (0);
 
 }
