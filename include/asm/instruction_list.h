@@ -22,11 +22,7 @@ typedef struct Section {
 
 typedef struct Listing {
   Section text;
-  struct {
-    Section preable;
-    Section main;
-    Section post;
-  } data;
+  Section data;
 } Listing;
 
 void init_listing(Listing *section);
