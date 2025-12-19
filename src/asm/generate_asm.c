@@ -897,9 +897,6 @@ static int load_string(OpNode* node, GeneratorContext *ctx)
   return 0;
 }
 
-static int eq(OpNode *node, GeneratorContext *ctx) {
-  
-}
 
 static int load_from(OpNode *node, GeneratorContext *ctx, bool change_register)
 {
@@ -920,8 +917,6 @@ static int load_from(OpNode *node, GeneratorContext *ctx, bool change_register)
     return less_more(node, ctx);
   else if (node->type == CallOrIndexer)
     return call_or_indexer(node, ctx);
-  else if (node->type == Equals)
-    return eq(node, ctx);
   else if (node->type == String)
     return load_string(node, ctx);
 
@@ -1082,6 +1077,7 @@ static Line jump_to_false_block(GeneratorContext *ctx)
 
 int cycle(ControlGraphNode *cgn_node, GeneratorContext *ctx)
 {
+  puts("here");
   update_labels(ctx->label_gen);
   OpNode *node = cgn_node->operation_node;
 
@@ -1420,80 +1416,14 @@ static int create_return(ControlGraphNode *cgn_node, GeneratorContext *ctx)
 
 int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
 {
-
-  /*if (cgn_node == NULL)
+  if (cgn_node == NULL)
     return 0;
 
-  if (cgn_node->generate_asm && cgn_node->parent_amount != 2)
-    return 0;
-
+  cgn_node->generate_asm = true;
   cgn_node->parent_accum++;
 
-  if (cgn_node->parent_amount == 2 && cgn_node->cond != NULL)
-        return cycle(cgn_node, ctx);
-
-  if (cgn_node->parent_amount == 2)
+  if (cgn_node->parent_accum == cgn_node->need_to_unlock)
   {
-    if (cgn_node->parent_accum == cgn_node->parent_amount)
-    {
-      // Create after if block
-      return after_if(cgn_node, ctx);
-    }
-  }
-  else 
-  {
-
-    OpNode *node = cgn_node->operation_node;
-    cgn_node->generate_asm = true;
-
-    if (cgn_node->cond == NULL)
-    {
-
-      if (node == NULL)
-        return generate_asm(cgn_node->def, ctx);
-
-      if (node->type == Assigment)
-      {
-        int err = assigment(node, ctx);
-        if (err)
-          return err;
-        return generate_asm(cgn_node->def, ctx);
-      }
-
-      if (node->type == CallOrIndexer)
-      {
-        int err = call(node, ctx);
-        if (err)
-          return err;
-
-        return generate_asm(cgn_node->def, ctx);
-      }
-
-      if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV || node->type == Load || node->type == CONST)
-        return create_return(cgn_node, ctx);
-
-      if (cgn_node->def != NULL)
-        return generate_asm(cgn_node->def, ctx);
-
-      return 0;
-    }
-
-    if (cgn_node->cond != NULL)
-      return if_statment(cgn_node, ctx);
-    }
-
-    return 0;*/
-
-    if (cgn_node == NULL)
-      return 0;
-
-
-    cgn_node->generate_asm = true;
-    cgn_node->parent_accum++;
-
-    if (cgn_node->parent_accum != cgn_node->need_to_unlock)
-      return 0;
-
     OpNode* node = cgn_node->operation_node;
 
     if (cgn_node->cond == NULL && node != NULL)
@@ -1535,7 +1465,13 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
     {
       return 0;
     }
+  }
+  else
+  {
+    return 0;
+  }
 
-    assert (0);
+
+  assert (0);
 
 }

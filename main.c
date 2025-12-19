@@ -94,6 +94,9 @@ int main(int argc, char **argv)
         return -1;
       }
 
+      LabelGenerator label_generator;
+      init_label_generator(&label_generator);
+
       for (size_t i = 0; i < max_functions; i++)
       {
         if (functions_node[i] == NULL)
@@ -119,8 +122,6 @@ int main(int argc, char **argv)
         ErrorList err_list;
         error_list_init(&err_list);
 
-        LabelGenerator label_generator;
-        init_label_generator(&label_generator);
 
         GeneratorContext generator_context = {
           .asmm = &asmm,

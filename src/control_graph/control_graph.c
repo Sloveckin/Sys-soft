@@ -188,6 +188,10 @@ static ControlGraphNode *while_cycle(Contex *context, struct Node* node)
   ControlGraphNode *last_stats = find_last_cgn_node(stats);
   cond->cond = stats;
 
+  /// I don't know how to fix it...
+  if (last_stats == NULL)
+    assert (0);
+
   last_stats->def = cond;
 
   cond->need_to_unlock = 1;
