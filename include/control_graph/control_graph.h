@@ -25,7 +25,6 @@ void context_resize(Contex *context);
 
 void free_context(Contex *context);
 
-
 typedef struct ControlGraphNode 
 {
   bool visited;

@@ -2,6 +2,7 @@
 
 #include <malloc.h>
 #include <string.h>
+#include <assert.h>
 
 int stack_init(MemStack *stack, size_t size)
 {
@@ -18,6 +19,7 @@ int stack_init(MemStack *stack, size_t size)
 
 int find_free_space(MemStack *stack, size_t size)
 {
+  assert (stack != NULL);
   size_t acc = 0;
   for (size_t i = 0; i < stack->size; i++)
   {

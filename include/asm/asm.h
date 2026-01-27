@@ -88,6 +88,7 @@ typedef enum
   OP_Label
 } OperandType;
 
+
 typedef struct
 {
   OperandType operand_type;

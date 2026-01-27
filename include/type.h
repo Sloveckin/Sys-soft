@@ -20,6 +20,15 @@ typedef enum
   ARRAY_TYPE = 10
 } ProgramType;
 
+typedef struct
+{
+  ProgramType type;
+  union 
+  {
+    size_t element_amount;
+  } data;
+} Type;
+
 extern const char *const ProgramType_to_str[];
 
 ProgramType typeRefTypeFromOpType(OpNodeType type);

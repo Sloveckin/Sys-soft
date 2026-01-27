@@ -1077,7 +1077,6 @@ static Line jump_to_false_block(GeneratorContext *ctx)
 
 int cycle(ControlGraphNode *cgn_node, GeneratorContext *ctx)
 {
-  puts("here");
   update_labels(ctx->label_gen);
   OpNode *node = cgn_node->operation_node;
 
@@ -1348,69 +1347,68 @@ int call(OpNode *node, GeneratorContext *ctx)
 
 static int after_if(ControlGraphNode *cgn_node, GeneratorContext *ctx)
 {
+  Line jump_to_end_block = {
+    .is_label = false,
+    .data.instruction = {
+      .mnemonic = MN_J,
+      .operand_amount = 1,
+      .first_operand = {
+        .operand_type = OP_Label,
+      }
+    }
+  };
+  sprintf(jump_to_end_block.data.instruction.first_operand.lable, "%s", ctx->label_gen->after_block);
 
-      Line jump_to_end_block = {
-        .is_label = false,
-        .data.instruction = {
-          .mnemonic = MN_J,
-          .operand_amount = 1,
-          .first_operand = {
-            .operand_type = OP_Label,
-          }
-        }
-      };
-      sprintf(jump_to_end_block.data.instruction.first_operand.lable, "%s", ctx->label_gen->after_block);
-
-      int err = listing_add_text(ctx->listing, jump_to_end_block);
-      if (err)
-        return err;
+  int err = listing_add_text(ctx->listing, jump_to_end_block);
+  if (err)
+    return err;
 
 
-      Line with_label = {
-        .is_label = true,
-      };
-      sprintf(with_label.data.label.buffer, "%s", ctx->label_gen->after_block);
+  Line with_label = {
+    .is_label = true,
+  };
+  sprintf(with_label.data.label.buffer, "%s", ctx->label_gen->after_block);
 
-      err = listing_add_text(ctx->listing, with_label);
-      if (err)
-        return err;
+  err = listing_add_text(ctx->listing, with_label);
+  if (err)
+    return err;
 
-      cgn_node->generate_asm = true;
+  cgn_node->generate_asm = true;
 
-      err = generate_asm(cgn_node->def, ctx);
-      if (err)
-        return err;
+  err = generate_asm(cgn_node->def, ctx); // cgn_node->def
+  if (err)
+    return err;
 
-      return 0;
+  return 0;
 }
 
 static int create_return(ControlGraphNode *cgn_node, GeneratorContext *ctx)
 {
 
-        int err = load_from(cgn_node->operation_node, ctx, true);
-        if (err)
-          return err;
+  int err = load_from(cgn_node->operation_node, ctx, true);
+  if (err)
+    return err;
 
-        int reg = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
+  int reg = stack_pop(ctx->register_stack, ctx->asmm, ctx->listing);
 
-        Instruction instr = {
-        .mnemonic = MN_MV,
-        .operand_amount = 2,
-        .first_operand = {
-          .operand_type = Reg,
-          .reg = a0,
-        },
-        .second_operand = {
-          .operand_type = Reg,
-          .reg = reg
-        }
-        };
-        Line line = {
-          .is_label = false,
-          .data.instruction = instr
-        };
+  Instruction instr = {
+  .mnemonic = MN_MV,
+  .operand_amount = 2,
+  .first_operand = {
+    .operand_type = Reg,
+    .reg = a0,
+  },
+  .second_operand = {
+    .operand_type = Reg,
+    .reg = reg
+  }
+  };
+  Line line = {
+    .is_label = false,
+    .data.instruction = instr
+  };
 
-        return listing_add_text(ctx->listing, line);
+  return listing_add_text(ctx->listing, line);
 }
 
 
@@ -1471,7 +1469,59 @@ int generate_asm(ControlGraphNode *cgn_node, GeneratorContext *ctx)
     return 0;
   }
 
+#if 0
+  if (cgn_node == NULL)
+    return 0;
+
+  if (cgn_node->generate_asm)
+    return 0;
+
+  cgn_node->generate_asm = true;
+  OpNode *node = cgn_node->operation_node;
+
+  if (node == NULL)
+  {
+    if (strcmp(cgn_node->text, "Empty") == 0)
+      return after_if(cgn_node->def, ctx);
+
+    return 0;
+  }
+
+  if (node->type == Assigment)
+  {
+    int err = assigment(node, ctx);
+    if (err)
+      return err;
+  }
+
+  if (cgn_node->cond != NULL && cgn_node->parent_amount == 1)
+    return if_statment(cgn_node, ctx);
+
+  if (node->type == ADD || node->type == SUB || node->type == MUL || node->type == DIV || node->type == Load || node->type == CONST)
+    return create_return(cgn_node, ctx);
+
+  if (cgn_node->cond != NULL)
+  {
+    int err = generate_asm(cgn_node->cond,  ctx);
+    if (err)
+      return err;
+
+    err = generate_asm(cgn_node->def, ctx);
+    if (err)
+      return err;
+
+    return 0;
+  }
+  else 
+  {
+    int err = generate_asm(cgn_node->def, ctx);
+    if (err)
+      return err;
+    
+    return 0;
+  }
 
   assert (0);
+#endif
 
 }
